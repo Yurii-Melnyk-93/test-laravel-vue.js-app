@@ -42,4 +42,15 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * balance_cents is guarded, so it cannot travel through the factory
+     * definition and has to be forced onto the model after creation.
+     */
+    public function withBalance(int $cents): static
+    {
+        return $this->afterCreating(
+            fn (User $user) => $user->forceFill(['balance_cents' => $cents])->save(),
+        );
+    }
 }
