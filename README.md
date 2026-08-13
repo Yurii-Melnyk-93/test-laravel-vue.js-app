@@ -34,7 +34,8 @@ npm run dev                   # фронтенд
 Тести:
 
 ```bash
-php artisan test
+php artisan test    # API — PHPUnit
+npm test            # компоненти Vue — Vitest
 ```
 
 ## Тестові дані
