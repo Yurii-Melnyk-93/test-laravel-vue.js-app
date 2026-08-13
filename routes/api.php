@@ -14,4 +14,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Claiming moves money, so it is rate limited more tightly than reads.
     Route::post('/promo/claim', [PromoController::class, 'claim'])
         ->middleware('throttle:20,1');
+
+    Route::get('/promo/history', [PromoController::class, 'history']);
 });

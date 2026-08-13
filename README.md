@@ -65,6 +65,10 @@ npm test            # компоненти Vue — Vitest
 | `POST` | `/api/logout` | відкликати поточний токен |
 | `POST` | `/api/promo/claim` | застосувати промокод, нарахувати бонус |
 | `GET` | `/api/promo/history` | історія застосувань: пагінація + фільтр за статусом |
+
+`GET /api/promo/history` приймає `?status=applied\|rejected\|revoked` (без параметра — усі),
+`?per_page=` (1–50, типово 10) і `?page=`. Невідомий статус повертає `422`, а не мовчки
+ігнорується. Фільтр зберігається в посиланнях пагінації.
 | `PATCH` | `/api/promo/{claimId}/revoke` | скасувати нарахування |
 
 Усі `/api/promo/*` вимагають заголовок `Authorization: Bearer <token>`.
