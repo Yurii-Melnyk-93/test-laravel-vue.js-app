@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import api, { clearToken, getToken } from './api.js';
 import BalanceCard from './components/BalanceCard.vue';
 import LoginForm from './components/LoginForm.vue';
+import PromoClaimForm from './components/PromoClaimForm.vue';
 
 const player = ref(null);
 const booting = ref(true);
@@ -31,6 +32,12 @@ function onAuthExpired() {
 onMounted(() => window.addEventListener('auth:expired', onAuthExpired));
 onUnmounted(() => window.removeEventListener('auth:expired', onAuthExpired));
 
+// The claim response already carries the new balance, so there is nothing
+// to re-fetch here.
+function onClaimed(balance) {
+    player.value = { ...player.value, balance };
+}
+
 async function logout() {
     loggingOut.value = true;
 
@@ -58,6 +65,7 @@ async function logout() {
 
             <div v-else class="space-y-6">
                 <BalanceCard :player="player" :busy="loggingOut" @logout="logout" />
+                <PromoClaimForm @claimed="onClaimed" />
             </div>
         </main>
     </div>
