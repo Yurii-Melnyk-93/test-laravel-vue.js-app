@@ -206,22 +206,23 @@ revoke міняє баланс і статус · **повторний revoke �
 
 ## План комітів (U3)
 
-1. `chore: init laravel + sqlite`
-2. `chore: project CLAUDE.md, README skeleton`
-3. `chore: vite + vue 3 + axios`
-4. `feat(auth): sanctum, login endpoint, player seeder`
-5. `feat(db): promo_codes, promo_claims, wallet_transactions + models/factories/seeder`
-6. `feat(api): POST /api/promo/claim`
-7. `test(api): claim + двійне нарахування`
-8. `feat(api): GET /api/promo/history`
-9. `test(api): history pagination + status filter`
-10. `feat(ui): login + balance`
-11. `feat(ui): promo claim form`
-12. `feat(ui): promo history list` ← **Тікет 1 закрито**
-13. `feat(api): PATCH revoke + guards`
-14. `test(api): revoke, double revoke, insufficient balance`
-15. `feat(ui): revoke button + confirm dialog` ← **Тікет 2 закрито**
-16. `docs: prompt log, code review, demo script`
+Ріжемо **вертикальними зрізами**: спочатку бекенд фічі разом із тестами, одразу за ним
+фронтенд до неї. Не «весь API, потім весь UI» — інакше більшу частину роботи в браузері
+нема на що дивитись і нема чого перевіряти наживо.
+
+1. ✅ `chore: init laravel + sqlite`
+2. ✅ `chore: project CLAUDE.md, README skeleton`
+3. ✅ `chore: vite + vue 3 + axios`
+4. ✅ `feat(auth): sanctum, login endpoint, player seeder` + `AuthTest`
+5. `feat(ui): login form + balance`
+6. `feat(db): promo_codes, promo_claims, wallet_transactions + models/factories/seeder`
+7. `feat(api): POST /api/promo/claim` + тести (формат, причини відмови, подвійне нарахування)
+8. `feat(ui): promo claim form` зі станами
+9. `feat(api): GET /api/promo/history` + тести (пагінація, фільтр за статусом)
+10. `feat(ui): promo history list` ← **Тікет 1 закрито**
+11. `feat(api): PATCH revoke + guards` + тести (повторний revoke, нестача балансу)
+12. `feat(ui): revoke button + confirm dialog` ← **Тікет 2 закрито**
+13. `docs: code review, demo script`
 
 `docs/PROMPT-LOG.md` ведеться **паралельно роботі**, а не відновлюється в кінці.
 
