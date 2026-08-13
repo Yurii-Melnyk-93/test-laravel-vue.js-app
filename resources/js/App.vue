@@ -4,6 +4,7 @@ import api, { clearToken, getToken } from './api.js';
 import BalanceCard from './components/BalanceCard.vue';
 import LoginForm from './components/LoginForm.vue';
 import PromoClaimForm from './components/PromoClaimForm.vue';
+import PromoHistory from './components/PromoHistory.vue';
 
 const player = ref(null);
 const booting = ref(true);
@@ -32,10 +33,17 @@ function onAuthExpired() {
 onMounted(() => window.addEventListener('auth:expired', onAuthExpired));
 onUnmounted(() => window.removeEventListener('auth:expired', onAuthExpired));
 
-// The claim response already carries the new balance, so there is nothing
-// to re-fetch here.
+const history = ref(null);
+
+// The balance comes back with the claim, so it is applied directly.
 function onClaimed(balance) {
     player.value = { ...player.value, balance };
+}
+
+// Fired whenever the server wrote a claim row — successful or refused.
+// Both end up in the history, so the list is stale either way.
+function onRecorded() {
+    history.value?.reload();
 }
 
 async function logout() {
@@ -65,7 +73,8 @@ async function logout() {
 
             <div v-else class="space-y-6">
                 <BalanceCard :player="player" :busy="loggingOut" @logout="logout" />
-                <PromoClaimForm @claimed="onClaimed" />
+                <PromoClaimForm @claimed="onClaimed" @recorded="onRecorded" />
+                <PromoHistory ref="history" />
             </div>
         </main>
     </div>

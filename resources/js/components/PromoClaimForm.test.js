@@ -57,6 +57,9 @@ describe('PromoClaimForm', () => {
         expect(wrapper.text()).toContain('Ви вже використовували цей промокод.');
         expect(wrapper.emitted('claimed')).toBeUndefined();
 
+        // The refusal was still written to the history, so the list must refresh.
+        expect(wrapper.emitted('recorded')).toHaveLength(1);
+
         // Left in place so the player can correct it.
         expect(wrapper.find('input').element.value).toBe('WELCOME100');
     });
@@ -73,6 +76,10 @@ describe('PromoClaimForm', () => {
         await submitCode(wrapper, 'AB1');
 
         expect(wrapper.text()).toContain('6–12 латинських літер');
+
+        // Validation never reached the domain, so nothing was written and the
+        // history has no reason to reload.
+        expect(wrapper.emitted('recorded')).toBeUndefined();
     });
 
     it('falls back to a readable message when the server cannot be reached', async () => {

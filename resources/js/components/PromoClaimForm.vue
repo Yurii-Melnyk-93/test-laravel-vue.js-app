@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import api from '../api.js';
 
-const emit = defineEmits(['claimed']);
+const emit = defineEmits(['claimed', 'recorded']);
 
 const code = ref('');
 const status = ref('idle'); // idle | loading | success | error
@@ -48,9 +48,16 @@ async function submit() {
         // The balance comes back with the claim, so the parent does not need
         // a second round trip to show the new figure.
         emit('claimed', data.balance);
+        emit('recorded');
     } catch (error) {
         status.value = 'error';
         errorMessage.value = messageFrom(error);
+
+        // A refused attempt is still written to the history, so the list is
+        // now stale. A 422 is not: nothing reached the domain.
+        if (error.response?.status === 409) {
+            emit('recorded');
+        }
     }
 }
 </script>
