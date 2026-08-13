@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->player('Олена Ковальчук', 'olena@example.com', 5_000);
         $this->player('Ігор Ткаченко', 'ihor@example.com', 12_550);
+
+        $this->call(PromoCodeSeeder::class);
     }
 
     private function player(string $name, string $email, int $balanceCents): void
