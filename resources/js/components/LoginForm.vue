@@ -77,10 +77,5 @@ async function submit() {
         >
             {{ status === 'loading' ? 'Вхід…' : 'Увійти' }}
         </button>
-
-        <p class="mt-4 text-xs text-slate-500">
-            Демо-гравці: <code>olena@example.com</code> та <code>ihor@example.com</code>,
-            пароль <code>password</code>.
-        </p>
     </form>
 </template>
