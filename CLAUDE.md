@@ -60,10 +60,14 @@
 
 ```bash
 php artisan migrate:fresh --seed   # підняти БД із засіяними гравцями й промокодами
-php artisan serve                  # API
-npm run dev                        # фронт
+php artisan serve --port=8000      # API
+npm run dev                        # фронт (hot reload)
 php artisan test                   # тести
 ```
+
+Дев-середовище **тримаємо піднятим між кроками**: обидва сервери у фоні, вкладка Chrome
+на `http://127.0.0.1:8000/` відкрита. Не гасити їх після перевірки — Vite дає hot reload,
+тож відкрита вкладка одразу показує зміни.
 
 ## Як зі мною працювати (стиль користувача)
 

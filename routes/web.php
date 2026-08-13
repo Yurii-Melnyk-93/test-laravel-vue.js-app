@@ -2,6 +2,5 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Single entry point: the Vue app owns everything below it.
+Route::view('/', 'app');
