@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import api from '../api.js';
+import { messageFrom } from '../errors.js';
 
 const emit = defineEmits(['claimed', 'recorded']);
 
@@ -10,21 +11,6 @@ const errorMessage = ref('');
 const credited = ref(null);
 
 const canSubmit = computed(() => code.value.trim().length > 0 && status.value !== 'loading');
-
-/**
- * The API answers with a machine readable `reason` next to a human `message`.
- * The message is displayed as-is: parsing it, or keeping a second copy of the
- * wording here, would let the two drift apart.
- */
-function messageFrom(error) {
-    const data = error.response?.data;
-
-    if (!data) {
-        return 'Не вдалося зв’язатися з сервером.';
-    }
-
-    return data.errors?.code?.[0] ?? data.message ?? 'Не вдалося застосувати промокод.';
-}
 
 async function submit() {
     // The disabled button is not enough on its own: Enter in the input
@@ -51,7 +37,7 @@ async function submit() {
         emit('recorded');
     } catch (error) {
         status.value = 'error';
-        errorMessage.value = messageFrom(error);
+        errorMessage.value = messageFrom(error, 'Не вдалося застосувати промокод.');
 
         // A refused attempt is still written to the history, so the list is
         // now stale. A 422 is not: nothing reached the domain.

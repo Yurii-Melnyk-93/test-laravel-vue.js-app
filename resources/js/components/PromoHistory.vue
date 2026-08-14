@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import api from '../api.js';
+import { messageFrom } from '../errors.js';
 import ConfirmDialog from './ConfirmDialog.vue';
 
 const emit = defineEmits(['revoked']);
@@ -58,8 +59,7 @@ async function load() {
         rows.value = data.data;
         meta.value = data.meta;
     } catch (error) {
-        errorMessage.value =
-            error.response?.data?.message ?? 'Не вдалося завантажити історію.';
+        errorMessage.value = messageFrom(error, 'Не вдалося завантажити історію.');
     } finally {
         loading.value = false;
     }
@@ -107,8 +107,7 @@ async function confirmRevoke() {
         await load();
     } catch (error) {
         revokeTarget.value = null;
-        revokeError.value =
-            error.response?.data?.message ?? 'Не вдалося скасувати нарахування.';
+        revokeError.value = messageFrom(error, 'Не вдалося скасувати нарахування.');
 
         // A refusal usually means our copy of the row is out of date — it was
         // already revoked elsewhere, or the balance moved. Refetch so the list

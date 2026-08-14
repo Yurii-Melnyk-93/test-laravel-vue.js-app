@@ -130,7 +130,20 @@ describe('PromoHistory', () => {
         const wrapper = mount(PromoHistory);
         await flushPromises();
 
-        expect(wrapper.text()).toContain('Не вдалося завантажити історію.');
+        // The request never reached the server, so the message says exactly
+        // that rather than blaming the history.
+        expect(wrapper.text()).toContain('Не вдалося зв’язатися з сервером.');
+    });
+
+    it('shows the server wording when the history request is refused', async () => {
+        api.get.mockRejectedValue({
+            response: { status: 500, data: { message: 'Сервіс тимчасово недоступний.' } },
+        });
+
+        const wrapper = mount(PromoHistory);
+        await flushPromises();
+
+        expect(wrapper.text()).toContain('Сервіс тимчасово недоступний.');
     });
 
     it('offers a revoke button only where the server allows it', async () => {

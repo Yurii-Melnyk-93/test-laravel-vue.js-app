@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import api, { setToken } from '../api.js';
+import { messageFrom } from '../errors.js';
 
 const emit = defineEmits(['authenticated']);
 
@@ -25,8 +26,7 @@ async function submit() {
         status.value = 'error';
         // The API answers the same way for an unknown email and a wrong
         // password, so there is a single message to show here.
-        errorMessage.value =
-            error.response?.data?.message ?? 'Не вдалося зв’язатися з сервером.';
+        errorMessage.value = messageFrom(error, 'Не вдалося увійти.');
     }
 }
 </script>

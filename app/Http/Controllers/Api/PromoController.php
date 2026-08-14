@@ -52,7 +52,7 @@ class PromoController extends Controller
         // that a foreign claim id exists.
         $claim = $player->promoClaims()->findOrFail($claimId);
 
-        $this->promo->revoke($player, $claim);
+        $claim = $this->promo->revoke($player, $claim);
 
         return response()->json([
             'claim' => new PromoClaimResource($claim),

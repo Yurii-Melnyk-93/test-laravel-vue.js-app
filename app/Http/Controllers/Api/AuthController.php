@@ -21,7 +21,7 @@ class AuthController extends Controller
         // endpoint cannot be used to find out which emails are registered.
         if (! $player || ! Hash::check($request->validated('password'), $player->password)) {
             throw ValidationException::withMessages([
-                'email' => __('Невірний email або пароль.'),
+                'email' => 'Невірний email або пароль.',
             ]);
         }
 
