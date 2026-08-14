@@ -129,6 +129,6 @@ npm test            # компоненти Vue — Vitest
 |---|---|
 | [`docs/PLAN.md`](docs/PLAN.md) | план робіт + матриця всіх вимог завдання |
 | [`docs/PROMPT-LOG.md`](docs/PROMPT-LOG.md) | лог промптів до AI-інструмента: запити, ітерації, виправлення |
-| `docs/CODE-REVIEW.md` | Частина 2 завдання — письмове рев'ю наданого фрагмента коду *(готується)* |
+| [`docs/CODE-REVIEW.md`](docs/CODE-REVIEW.md) | Частина 2 завдання — письмове рев'ю наданого фрагмента коду |
 | [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md) | **запуск і обидві фічі в скріншотах** — послідовність із поясненнями |
 | [`docs/DEMO-SCRIPT.md`](docs/DEMO-SCRIPT.md) | сценарій демо-відео: хронометраж і що показати |
