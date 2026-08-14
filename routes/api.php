@@ -16,4 +16,9 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('throttle:20,1');
 
     Route::get('/promo/history', [PromoController::class, 'history']);
+
+    // Moves money as well, so it shares the tighter limit.
+    Route::patch('/promo/{claimId}/revoke', [PromoController::class, 'revoke'])
+        ->whereNumber('claimId')
+        ->middleware('throttle:20,1');
 });

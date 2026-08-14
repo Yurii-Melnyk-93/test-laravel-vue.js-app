@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ClaimStatus;
 use App\Enums\RejectionReason;
+use App\Enums\RevokeRefusal;
 use App\Exceptions\PromoException;
 use App\Models\PromoClaim;
 use App\Models\PromoCode;
@@ -61,6 +62,44 @@ class PromoService
             // lost. The transaction already rolled back, so nothing was
             // credited twice — for the caller it is simply "already used".
             $this->reject($player, $code, $promoCode, RejectionReason::AlreadyUsed);
+        }
+    }
+
+    /**
+     * Takes a credited bonus back off the balance.
+     *
+     * The claim keeps blocking the promo code afterwards: a revoked row still
+     * satisfies the partial unique index, so revoke → claim → revoke cannot
+     * be looped to farm the same bonus twice.
+     *
+     * @throws PromoException when the claim cannot be revoked
+     */
+    public function revoke(User $player, PromoClaim $claim): PromoClaim
+    {
+        if (! $claim->isRevocable()) {
+            throw PromoException::refused(
+                $claim->status === ClaimStatus::Revoked
+                    ? RevokeRefusal::AlreadyRevoked
+                    : RevokeRefusal::NotApplied,
+            );
+        }
+
+        try {
+            return DB::transaction(function () use ($player, $claim) {
+                $this->wallet->debit($player, $claim, $claim->amount_cents);
+
+                $claim->update([
+                    'status' => ClaimStatus::Revoked,
+                    'revoked_at' => now(),
+                ]);
+
+                return $claim;
+            });
+        } catch (UniqueConstraintViolationException) {
+            // Two revokes of the same claim raced past the status check. The
+            // ledger's unique (promo_claim_id, type) refused the second debit
+            // and this transaction rolled back, so nothing was taken twice.
+            throw PromoException::refused(RevokeRefusal::AlreadyRevoked);
         }
     }
 

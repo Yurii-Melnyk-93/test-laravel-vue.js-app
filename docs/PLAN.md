@@ -88,10 +88,10 @@ git переведено на `http.sslBackend=schannel`. Після оновл�
 ### Тікет 2
 | # | Вимога | Де | |
 |---|---|---|---|
-| T2.1 | `PATCH /api/promo/{claimId}/revoke` | `routes/api.php` | ⬜ |
-| T2.2 | Скасовує нарахування | `PromoService::revoke()` | ⬜ |
-| T2.3 | Знімає суму з балансу | `WalletService::debit()`, від'ємна проводка | ⬜ |
-| T2.4 | Повторний виклик → **помилка**, не тихе подвійне списання | статус + unique на ledger | ⬜ |
+| T2.1 | `PATCH /api/promo/{claimId}/revoke` | `routes/api.php` | ✅ |
+| T2.2 | Скасовує нарахування | `PromoService::revoke()` | ✅ |
+| T2.3 | Знімає суму з балансу | `WalletService::debit()`, від'ємна проводка | ✅ |
+| T2.4 | Повторний виклик → **помилка**, не тихе подвійне списання | статус + unique на ledger | ✅ |
 | T2.5 | Кнопка «Скасувати» напроти кожного **застосованого** коду | `PromoHistory.vue`, поле `can_revoke` | ⬜ |
 | T2.6 | Підтвердження дії | `ConfirmDialog.vue` (власна модалка) | ⬜ |
 | T2.7 | Оновлення статусу після скасування | рефетч історії | ⬜ |
@@ -101,9 +101,9 @@ git переведено на `http.sslBackend=schannel`. Після оновл�
 ### Захист від зловживань (преамбула умови)
 | # | Вимога | Де | |
 |---|---|---|---|
-| X1 | Коректність | 31 тест бекенду + 15 фронтенду | ✅ триває |
+| X1 | Коректність | 52 тести бекенду + 24 фронтенду | ✅ триває |
 | X2 | Немає подвійного нарахування | partial unique `(user_id, promo_code_id)` + unique на ledger, `SchemaGuardsTest` | ✅ |
-| X3 | Немає від'ємних сум | `unsigned` на сумі бонусу; заборона revoke при нестачі | ⬜ друга частина в Тікеті 2 |
+| X3 | Немає від'ємних сум | `unsigned` на сумі бонусу; guard `balanceAfter < 0` у `WalletService` під локом | ✅ |
 
 ### Що надіслати
 | # | Вимога | Де | |
@@ -243,7 +243,7 @@ revoke міняє баланс і статус · **повторний revoke �
 
 12. ✅ `feat(api): promo claim history`
 13. ✅ `feat(ui): promo history list` ← **Тікет 1 закрито**
-14. `feat(api): revoke a promo claim` + тести (повторний revoke, нестача балансу)
+14. ✅ `feat(api): revoke a promo claim` + тести (повторний revoke, нестача балансу)
 15. `feat(ui): revoke button + confirm dialog` + тести ← **Тікет 2 закрито**
 16. `docs: code review and demo script`
 

@@ -9,6 +9,7 @@ use App\Http\Resources\PromoClaimResource;
 use App\Services\PromoService;
 use App\Support\Money;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class PromoController extends Controller
@@ -40,5 +41,22 @@ class PromoController extends Controller
             ->withQueryString();
 
         return PromoClaimResource::collection($claims);
+    }
+
+    public function revoke(Request $request, int $claimId): JsonResponse
+    {
+        $player = $request->user();
+
+        // Looked up through the relation on purpose: someone else's claim is
+        // "not found" rather than "forbidden", so the endpoint never confirms
+        // that a foreign claim id exists.
+        $claim = $player->promoClaims()->findOrFail($claimId);
+
+        $this->promo->revoke($player, $claim);
+
+        return response()->json([
+            'claim' => new PromoClaimResource($claim),
+            'balance' => Money::toArray($player->balance_cents),
+        ]);
     }
 }

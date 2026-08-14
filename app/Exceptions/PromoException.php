@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use App\Enums\RejectionReason;
+use App\Enums\RevokeRefusal;
 use Exception;
 use Illuminate\Http\JsonResponse;
 
@@ -23,6 +24,11 @@ class PromoException extends Exception
     }
 
     public static function rejected(RejectionReason $reason): self
+    {
+        return new self($reason->value, $reason->message());
+    }
+
+    public static function refused(RevokeRefusal $reason): self
     {
         return new self($reason->value, $reason->message());
     }
