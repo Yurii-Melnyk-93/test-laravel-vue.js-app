@@ -9,7 +9,7 @@
 | БД | SQLite — жодних зовнішніх сервісів |
 | Auth | Laravel Sanctum, токен у заголовку |
 | Frontend | Vue 3 (Composition API, `<script setup>`), Vite, axios |
-| Тести | Pest, feature-рівень |
+| Тести | PHPUnit (feature-рівень) + Vitest |
 
 ## Запуск
 
@@ -65,11 +65,11 @@ npm test            # компоненти Vue — Vitest
 | `POST` | `/api/logout` | відкликати поточний токен |
 | `POST` | `/api/promo/claim` | застосувати промокод, нарахувати бонус |
 | `GET` | `/api/promo/history` | історія застосувань: пагінація + фільтр за статусом |
+| `PATCH` | `/api/promo/{claimId}/revoke` | скасувати нарахування |
 
 `GET /api/promo/history` приймає `?status=applied\|rejected\|revoked` (без параметра — усі),
 `?per_page=` (1–50, типово 10) і `?page=`. Невідомий статус повертає `422`, а не мовчки
 ігнорується. Фільтр зберігається в посиланнях пагінації.
-| `PATCH` | `/api/promo/{claimId}/revoke` | скасувати нарахування |
 
 Усі `/api/promo/*` вимагають заголовок `Authorization: Bearer <token>`.
 **Гравець визначається виключно з токена** — жоден ендпоінт не приймає ідентифікатор гравця
@@ -130,4 +130,5 @@ npm test            # компоненти Vue — Vitest
 | [`docs/PLAN.md`](docs/PLAN.md) | план робіт + матриця всіх вимог завдання |
 | [`docs/PROMPT-LOG.md`](docs/PROMPT-LOG.md) | лог промптів до AI-інструмента: запити, ітерації, виправлення |
 | `docs/CODE-REVIEW.md` | Частина 2 завдання — письмове рев'ю наданого фрагмента коду *(готується)* |
-| `docs/DEMO-SCRIPT.md` | сценарій демонстрації обох фіч *(готується)* |
+| [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md) | **запуск і обидві фічі в скріншотах** — послідовність із поясненнями |
+| [`docs/DEMO-SCRIPT.md`](docs/DEMO-SCRIPT.md) | сценарій демо-відео: хронометраж і що показати |
