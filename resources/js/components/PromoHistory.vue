@@ -1,6 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import api from '../api.js';
+import ConfirmDialog from './ConfirmDialog.vue';
+
+const emit = defineEmits(['revoked']);
 
 const FILTERS = [
     { value: '', label: 'Усі' },
@@ -23,6 +26,12 @@ const status = ref('');
 const page = ref(1);
 const loading = ref(false);
 const errorMessage = ref('');
+
+// Kept apart from errorMessage: a failed revoke must not replace the list
+// with an error, the rows are still valid and still worth seeing.
+const revokeTarget = ref(null);
+const revoking = ref(false);
+const revokeError = ref('');
 
 const dateFormat = new Intl.DateTimeFormat('uk-UA', {
     dateStyle: 'short',
@@ -69,6 +78,49 @@ function goTo(target) {
     load();
 }
 
+function askToRevoke(row) {
+    revokeError.value = '';
+    revokeTarget.value = row;
+}
+
+async function confirmRevoke() {
+    // Guarded here rather than only through `disabled`: this takes money off
+    // a balance, so a second Enter on the focused button must not send it
+    // twice while the first request is still in flight.
+    if (revoking.value || revokeTarget.value === null) {
+        return;
+    }
+
+    revoking.value = true;
+
+    try {
+        const { data } = await api.patch(`/promo/${revokeTarget.value.id}/revoke`);
+
+        revokeTarget.value = null;
+
+        // The balance comes back with the response, so the parent shows the
+        // new figure without a second round trip.
+        emit('revoked', data.balance);
+
+        // The row's status and amount changed on the server, and under the
+        // "applied" filter it no longer belongs here at all.
+        await load();
+    } catch (error) {
+        revokeTarget.value = null;
+        revokeError.value =
+            error.response?.data?.message ?? 'Не вдалося скасувати нарахування.';
+
+        // A refusal usually means our copy of the row is out of date — it was
+        // already revoked elsewhere, or the balance moved. Refetch so the list
+        // stops showing a button that cannot work.
+        if (error.response) {
+            await load();
+        }
+    } finally {
+        revoking.value = false;
+    }
+}
+
 onMounted(load);
 
 // The parent calls this after a successful claim so the new row appears
@@ -105,6 +157,14 @@ defineExpose({
             </div>
         </div>
 
+        <p
+            v-if="revokeError"
+            class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+            role="alert"
+        >
+            {{ revokeError }}
+        </p>
+
         <p v-if="errorMessage" class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
             {{ errorMessage }}
         </p>
@@ -139,6 +199,20 @@ defineExpose({
                 <span class="w-20 shrink-0 text-right font-medium tabular-nums">
                     {{ row.amount ? row.amount.formatted : '—' }}
                 </span>
+
+                <!-- Fixed width so rows without a button still line up. The
+                     server decides who gets one, via can_revoke. -->
+                <span class="w-24 shrink-0 text-right">
+                    <button
+                        v-if="row.can_revoke"
+                        type="button"
+                        :disabled="loading || revoking"
+                        class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm transition hover:bg-slate-50 disabled:opacity-40"
+                        @click="askToRevoke(row)"
+                    >
+                        Скасувати
+                    </button>
+                </span>
             </li>
         </ul>
 
@@ -165,5 +239,20 @@ defineExpose({
                 Далі
             </button>
         </div>
+
+        <ConfirmDialog
+            :open="revokeTarget !== null"
+            :busy="revoking"
+            title="Скасувати нарахування?"
+            :message="
+                revokeTarget
+                    ? `Бонус ${revokeTarget.amount.formatted} за промокодом ${revokeTarget.code} буде знято з балансу.`
+                    : ''
+            "
+            confirm-label="Так, скасувати"
+            cancel-label="Ні, залишити"
+            @confirm="confirmRevoke"
+            @cancel="revokeTarget = null"
+        />
     </section>
 </template>

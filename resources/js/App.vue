@@ -35,8 +35,9 @@ onUnmounted(() => window.removeEventListener('auth:expired', onAuthExpired));
 
 const history = ref(null);
 
-// The balance comes back with the claim, so it is applied directly.
-function onClaimed(balance) {
+// Both claiming and revoking answer with the balance they produced, so it is
+// applied directly instead of asking the server for it again.
+function onBalance(balance) {
     player.value = { ...player.value, balance };
 }
 
@@ -73,8 +74,8 @@ async function logout() {
 
             <div v-else class="space-y-6">
                 <BalanceCard :player="player" :busy="loggingOut" @logout="logout" />
-                <PromoClaimForm @claimed="onClaimed" @recorded="onRecorded" />
-                <PromoHistory ref="history" />
+                <PromoClaimForm @claimed="onBalance" @recorded="onRecorded" />
+                <PromoHistory ref="history" @revoked="onBalance" />
             </div>
         </main>
     </div>
