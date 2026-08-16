@@ -1,122 +1,132 @@
-# CLAUDE.md — промокоди та бонуси (Laravel + Vue)
+# CLAUDE.md — promo codes and bonuses (Laravel + Vue)
 
-## Що це за проєкт
+## What this project is
 
-Тестове завдання на позицію «AI-асистований розробник (Laravel/Vue)».
-Домен — гемблінг/беттинг-платформа: баланс гравця та бонуси за промокодами.
+A test assignment for an "AI-assisted developer (Laravel/Vue)" position.
+The domain is a gambling/betting platform: player balance and promo-code bonuses.
 
-Два тікети в одному проєкті:
-1. Нарахування бонусу за промокодом + історія застосувань із пагінацією й фільтром за статусом.
-2. Скасування помилково нарахованого бонусу.
+Two tickets in one project:
+1. Crediting a bonus for a promo code + claim history with pagination and a status filter.
+2. Revoking a bonus that was credited by mistake.
 
-**Замовник прямо вказав**, що коректність і захист від зловживань (подвійне нарахування,
-від'ємні суми) оцінюються нарівні з тим, що фіча просто працює. Тому будь-яка правка,
-що торкається балансу, має відповідати на питання «а що буде при гонці / повторі / від'ємній сумі».
+**The client stated explicitly** that correctness and abuse protection (double crediting,
+negative amounts) are graded on par with the feature simply working. So any change that
+touches the balance must answer the question "what happens under a race / a retry /
+a negative amount?".
 
-Повний план і **матриця з 30 атомарних вимог** — `docs/PLAN.md`. Перед здачею пройтись по ній.
+The full plan and the **matrix of 30 atomic requirements** are in `docs/PLAN.md`. Walk
+through it before handing the work in.
 
-## Стек і рішення
+## Stack and decisions
 
 | | |
 |---|---|
-| Backend | Laravel (REST API), PHP 8.2+ через Laravel Herd |
-| БД | SQLite (`database/database.sqlite`) — нуль налаштувань для перевіряючого |
-| Auth | Sanctum, токен у заголовку; гравець **завжди** з токена, ніколи з тіла запиту |
-| Frontend | Vue 3, **Composition API + `<script setup>`**, Vite, axios. Без vue-router і без store |
-| Тести | Pest, feature-рівень |
+| Backend | Laravel (REST API), PHP 8.2+ via Laravel Herd |
+| DB | SQLite (`database/database.sqlite`) — zero setup for the reviewer |
+| Auth | Sanctum, token in the header; the player **always** comes from the token, never from the request body |
+| Frontend | Vue 3, **Composition API + `<script setup>`**, Vite, axios. No vue-router, no store |
+| Tests | Pest, feature level |
 
-## Залізні правила домену
+## Hard domain rules
 
-**Гроші — цілі числа в центах.** `balance_cents`, `amount_cents`, `bigint`. Ніяких float
-на грошах, ніде. В API віддаємо і `cents`, і `formatted`.
+**Money is integer cents.** `balance_cents`, `amount_cents`, `bigint`. No floats on money,
+anywhere. The API returns both `cents` and `formatted`.
 
-**Баланс не мутується напряму.** Кожна зміна балансу = рядок у `wallet_transactions`
-+ оновлення `users.balance_cents` **в одній `DB::transaction()`**. Ledger — джерело правди,
-сума проводок завжди сходиться з балансом.
+**The balance is never mutated directly.** Every balance change = a row in
+`wallet_transactions` + an update of `users.balance_cents` **inside a single
+`DB::transaction()`**. The ledger is the source of truth; the sum of its entries always
+reconciles with the balance.
 
-**Захист на рівні БД, а не тільки в `if`.** Перевірка в коді не ловить гонку.
-- partial unique `(user_id, promo_code_id) WHERE status <> 'rejected'` — проти подвійного claim
-- unique `(promo_claim_id, type)` на ledger — проти подвійного revoke
+**Protection at the DB level, not just in an `if`.** A check in code does not catch a race.
+- partial unique `(user_id, promo_code_id) WHERE status <> 'rejected'` — against a double claim
+- unique `(promo_claim_id, type)` on the ledger — against a double revoke
 - CHECK `bonus_amount_cents > 0`
 
-**Відхилені спроби теж пишуться в БД.** Фільтр історії має значення «відхилено» — отже
-кожен невдалий claim створює рядок зі статусом `rejected` і причиною, і лише потім
-повертається помилка.
+**Rejected attempts are written to the DB too.** History has a "rejected" filter value — so
+every failed claim creates a row with status `rejected` and a reason, and only then is the
+error returned.
 
-**Revoke при нестачі балансу — заборонений.** 409 `insufficient_balance`, статус не міняється.
-Не дозволяємо мінус і не списуємо до нуля.
+**A revoke with insufficient balance is forbidden.** 409 `insufficient_balance`, the status
+does not change. We neither allow a negative balance nor debit down to zero.
 
-**Коди помилок:** `422` — тільки помилки формату (валідація). `409` — порушення бізнес-правила,
-з машинним `reason` (`not_found` / `expired` / `already_used` / `already_revoked` /
-`not_applied` / `insufficient_balance`). Чужий claim → `404`, не `403`, щоб не зливати
-факт існування чужих записів.
+**Error codes:** `422` — format errors only (validation). `409` — a business-rule violation,
+with a machine-readable `reason` (`not_found` / `expired` / `already_used` / `already_revoked` /
+`not_applied` / `insufficient_balance`). Someone else's claim → `404`, not `403`, so as not to
+leak the fact that another player's records exist.
 
-## Структура
+## Structure
 
-Бізнес-логіка — у `PromoService`, контролери тонкі. Валідація — у Form Request.
-Відповіді — через API Resources, руками масиви не збираємо.
+Business logic lives in `PromoService`; controllers are thin. Validation goes in a Form
+Request. Responses go through API Resources — we never assemble arrays by hand.
 
-## Команди
+## Commands
 
 ```bash
-php artisan migrate:fresh --seed   # підняти БД із засіяними гравцями й промокодами
+php artisan migrate:fresh --seed   # bring up the DB with seeded players and promo codes
 php artisan serve --port=8000      # API
-npm run dev                        # фронт (hot reload)
+npm run dev                        # frontend (hot reload)
 
-php artisan test                   # тести бекенду (PHPUnit)
-npm test                           # тести фронтенду (Vitest)
-php vendor/bin/pint                # стиль коду
+php artisan test                   # backend tests (PHPUnit)
+npm test                           # frontend tests (Vitest)
+php vendor/bin/pint                # code style
 ```
 
-**Тести обов'язкові з обох боків.** Кожен зріз покривається і PHPUnit, і Vitest —
-плюс перевірка наживо в браузері. Одне не замінює інше: тести ловлять регресії,
-браузер ловить те, чого тести не бачать.
+**Tests are mandatory on both sides.** Every slice is covered by both PHPUnit and Vitest —
+plus a live check in the browser. One does not replace the other: tests catch regressions,
+the browser catches what tests do not see.
 
-Дев-середовище **тримаємо піднятим між кроками**: обидва сервери у фоні, вкладка Chrome
-на `http://127.0.0.1:8000/` відкрита. Не гасити їх після перевірки — Vite дає hot reload,
-тож відкрита вкладка одразу показує зміни.
+**Keep the dev environment up between steps**: both servers in the background, a Chrome tab
+on `http://127.0.0.1:8000/` open. Do not shut them down after a check — Vite gives hot
+reload, so the open tab shows changes immediately.
 
-## Як зі мною працювати (стиль користувача)
+## How to work with me (user's style)
 
-- Пишу українською, технічні терміни англійською. Відповіді — коротко, `path:line`.
-- **Скоуп понад усе.** Out of scope — прибираємо повністю, без мертвого коду.
-  «Поки залишимо так» — валідна відповідь, поважай її. Що поза скоупом — у `docs/PLAN.md`.
-- **Чисті контракти даних**, а не парсинг склеєних рядків. Можна окремим полем — окремим полем.
-- **Lint-clean на виході.** Прожени лінтер/типи перед тим, як казати «готово».
-- **Перевіряй наживо** (Chrome automation), а не «код виглядає правильно».
-- **Конвенції беруться з сусіднього коду**, а не з власних уподобань.
-- **Не переусувай.** Досить інформації — дій. Треба рішення користувача — одне чітке питання.
-- Рапортуй чесно: тести впали — покажи вивід; крок пропущено — скажи.
+- I write in Ukrainian, with technical terms in English. Answers — short, with `path:line`.
+- **Scope above all.** Out of scope means removed completely, with no dead code.
+  "Let's leave it like this for now" is a valid answer — respect it. What is out of scope
+  goes into `docs/PLAN.md`.
+- **Clean data contracts**, not parsing of concatenated strings. If it can be a separate
+  field, make it a separate field.
+- **Lint-clean on delivery.** Run the linter/type checks before saying "done".
+- **Verify live** (Chrome automation), not "the code looks right".
+- **Conventions come from the neighbouring code**, not from your own preferences.
+- **Don't over-clarify.** Enough information — act. Need a decision from the user — one
+  clear question.
+- Report honestly: tests failed — show the output; a step was skipped — say so.
 
-## Робочий процес (домовленість)
+## Workflow (agreed)
 
-Ріжемо роботу **вертикальними зрізами**: спочатку бекенд фічі з тестами, одразу за ним
-фронтенд до неї. Не «весь API, потім весь UI».
+We cut the work into **vertical slices**: first the backend of a feature with tests,
+immediately followed by the frontend for it. Not "the whole API, then the whole UI".
 
-Працюємо по одному логічному кроку. **Завершивши крок, обов'язково пройти чотири пункти:**
+We work one logical step at a time. **Having finished a step, always go through four points:**
 
-1. **Звірка з планом** — що з матриці вимог `docs/PLAN.md` закрито; розходження назвати явно.
-2. **Перевірка на зайвий код** — мертвий код, залишки скафолда, закоментовані шматки, дублювання.
-3. **Тести** — прогнати, якщо вже є, і показати справжній вивід. Впали — так і сказати.
-4. **Пропозиція коміту** — назва + короткий опис, і зупинитись.
+1. **Check against the plan** — which items of the `docs/PLAN.md` requirement matrix are
+   closed; name discrepancies explicitly.
+2. **Check for surplus code** — dead code, scaffolding leftovers, commented-out chunks,
+   duplication.
+3. **Tests** — run them if they already exist and show the real output. They failed — say so.
+4. **Commit proposal** — the title + a short description, then stop.
 
-Після апруву — **коміт і одразу пуш** (окремо про пуш не перепитувати).
-Апрув стосується конкретного коміту, а не всіх наступних.
+After approval — **commit and push right away** (no separate question about pushing).
+Approval applies to that specific commit, not to all the following ones.
 
-- Коміт і пуш **без апруву — ніколи**, але й мовчки чекати не треба: ініціатива за мною,
-  рішення за користувачем.
-- Опис коміту **короткий**: subject у стилі conventional commits + 2–3 рядки суті.
-- Гілку не створюємо, історія лінійна в `main`.
-- Історія комітів — окремий критерій оцінки завдання, тому вона має бути покроковою
-  й осмисленою, а не одним фінальним комітом.
-- `docs/PROMPT-LOG.md` ведеться **паралельно роботі**, а не відновлюється в кінці.
+- Commit and push **without approval — never**, but do not wait silently either: the
+  initiative is mine, the decision is the user's.
+- The commit description is **short**: a conventional-commits-style subject + 2–3 lines
+  of substance.
+- We do not create branches; history is linear on `main`.
+- Commit history is a separate grading criterion for the assignment, so it must be
+  step-by-step and meaningful, not one final commit.
+- `docs/PROMPT-LOG.md` is maintained **in parallel with the work**, not reconstructed at
+  the end.
 
-## Деліверабли
+## Deliverables
 
-| Файл | Що |
+| File | What |
 |---|---|
-| `docs/PLAN.md` | план + матриця вимог |
-| `docs/PROMPT-LOG.md` | лог промптів по тікетах, ітерації та виправлення |
-| `docs/CODE-REVIEW.md` | Частина 2 — письмове рев'ю чужого фрагмента коду |
-| `docs/DEMO-SCRIPT.md` | сценарій демо-відео (2–5 хв), запис за користувачем |
-| `README.md` | як підняти й запустити |
+| `docs/PLAN.md` | plan + requirement matrix |
+| `docs/PROMPT-LOG.md` | prompt log per ticket, iterations and fixes |
+| `docs/CODE-REVIEW.md` | Part 2 — a written review of someone else's code fragment |
+| `docs/SCREENSHOTS.md` | setup and both features in screenshots |
+| `README.md` | how to set up and run |

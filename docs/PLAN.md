@@ -1,231 +1,236 @@
-# Тестове завдання: Laravel + Vue, промокоди та бонуси
+# Test assignment: Laravel + Vue, promo codes and bonuses
 
 ## Context
 
-Тестове завдання на позицію «AI-асистований розробник (Laravel/Vue)». Домен — гемблінг/беттинг,
-тому в умові прямо сказано, що коректність і захист від зловживань (подвійне нарахування,
-від'ємні суми) оцінюються нарівні з тим, що фіча працює.
+A test assignment for an "AI-assisted developer (Laravel/Vue)" position. The domain is
+gambling/betting, so the brief explicitly states that correctness and abuse protection (double
+crediting, negative amounts) are graded on par with the feature working.
 
-Мета: робочий проєкт із реальною історією комітів + три супровідні документи (лог промптів,
-рев'ю коду з Частини 2, сценарій демо-відео).
+Goal: a working project with a real commit history + the accompanying documents (prompt log,
+the Part 2 code review).
 
-### Рішення, узгоджені з користувачем
-| Питання | Рішення |
+### Decisions agreed with the user
+| Question | Decision |
 |---|---|
-| PHP | Laravel Herd для Windows |
-| Revoke при нестачі балансу | Заборонити, повернути 409 `insufficient_balance`, статус не міняти |
-| Vue | Composition API + `<script setup>`, без store |
-| Auth | Sanctum + мінімальна форма логіну, 2 засіяні гравці |
-| Тести | PHPUnit (бек) + Vitest (фронт), обидва обов'язкові |
-| Стиль коду | Pint для PHP |
+| PHP | Laravel Herd for Windows |
+| Revoke with insufficient balance | Forbid it, return 409 `insufficient_balance`, do not change the status |
+| Vue | Composition API + `<script setup>`, no store |
+| Auth | Sanctum + a minimal login form, 2 seeded players |
+| Tests | PHPUnit (backend) + Vitest (frontend), both mandatory |
+| Code style | Pint for PHP |
 
-### Стан середовища
+### Environment state
 
-PHP 8.4.24 + Composer 2.10.1 через Herd, Node 24 / npm 11, Laravel **13.25**, SQLite.
-Avast перехоплює TLS — його корінь дописано в `~/.config/herd/config/php/cacert.pem`,
-git переведено на `http.sslBackend=schannel`. Після оновлення Herd правку доведеться повторити.
+PHP 8.4.24 + Composer 2.10.1 via Herd, Node 24 / npm 11, Laravel **13.25**, SQLite.
+Avast intercepts TLS — its root was appended to `~/.config/herd/config/php/cacert.pem`, and git
+was switched to `http.sslBackend=schannel`. After a Herd update the fix will have to be redone.
 
 ---
 
-## Матриця вимог
+## Requirement matrix
 
-Кожна вимога з тексту завдання → де закривається. Це контрольний список для фінальної перевірки.
+Every requirement from the assignment text → where it is covered. This is the checklist for the
+final review.
 
-### Умови виконання
-| # | Вимога | Де | |
+### Conditions of completion
+| # | Requirement | Where | |
 |---|---|---|---|
-| U1 | Стек Laravel (REST API) + Vue (axios) | весь проєкт | ✅ |
-| U2 | Персональний Git-репозиторій | GitHub, `origin` | ✅ |
-| U3 | **Реальна історія комітів**, не один фінальний | план комітів нижче | ✅ триває |
+| U1 | Stack: Laravel (REST API) + Vue (axios) | the whole project | ✅ |
+| U2 | A personal Git repository | GitHub, `origin` | ✅ |
+| U3 | **A real commit history**, not a single final commit | commit plan below | ✅ ongoing |
 
-### Тікет 1 — Backend, claim
-| # | Вимога | Де | |
+### Ticket 1 — Backend, claim
+| # | Requirement | Where | |
 |---|---|---|---|
 | T1.1 | `POST /api/promo/claim` | `routes/api.php` | ✅ |
-| T1.2 | Код обов'язковий | `ClaimPromoRequest` → `required` | ✅ |
-| T1.3 | Формат 6–12 символів, латиниця + цифри | `regex:/^[A-Za-z0-9]{6,12}$/` | ✅ |
-| T1.4 | Гравець з **токена**, не з тіла | `$request->user()`, `auth:sanctum` | ✅ |
-| T1.5 | Перевірка: код існує | `PromoService::claim()` | ✅ |
-| T1.6 | Перевірка: не прострочений | `PromoCode::hasExpired()` | ✅ |
-| T1.7 | Перевірка: не використаний цим гравцем | `alreadyConsumed()` + partial unique index | ✅ |
-| T1.8 | Успіх → бонус на баланс | `WalletService::credit()`, ledger + баланс в одній транзакції | ✅ |
-| T1.9 | Відповідь: оновлений баланс | `PromoController::claim()` → `balance` | ✅ |
-| T1.10 | Відповідь: сума бонусу | те саме → `bonus_amount` | ✅ |
-| T1.11 | Невірний формат → **422** з описом | Laravel validation | ✅ |
-| T1.12 | Неісн./прострочений/використаний → **окрема** помилка з чіткою причиною | **409** + `reason` | ✅ |
+| T1.2 | The code is required | `ClaimPromoRequest` → `required` | ✅ |
+| T1.3 | Format: 6–12 characters, Latin letters + digits | `regex:/^[A-Za-z0-9]{6,12}$/` | ✅ |
+| T1.4 | The player comes from the **token**, not from the body | `$request->user()`, `auth:sanctum` | ✅ |
+| T1.5 | Check: the code exists | `PromoService::claim()` | ✅ |
+| T1.6 | Check: not expired | `PromoCode::hasExpired()` | ✅ |
+| T1.7 | Check: not already used by this player | `alreadyConsumed()` + partial unique index | ✅ |
+| T1.8 | Success → bonus onto the balance | `WalletService::credit()`, ledger + balance in one transaction | ✅ |
+| T1.9 | Response: the updated balance | `PromoController::claim()` → `balance` | ✅ |
+| T1.10 | Response: the bonus amount | same → `bonus_amount` | ✅ |
+| T1.11 | Invalid format → **422** with a description | Laravel validation | ✅ |
+| T1.12 | Missing/expired/used → a **separate** error with a clear reason | **409** + `reason` | ✅ |
 
-### Тікет 1 — Backend, history
-| # | Вимога | Де | |
+### Ticket 1 — Backend, history
+| # | Requirement | Where | |
 |---|---|---|---|
 | T1.13 | `GET /api/promo/history` | `routes/api.php` | ✅ |
-| T1.14 | Тільки цього гравця | `$request->user()->promoClaims()` | ✅ |
-| T1.15 | Пагінація | `paginate()` + `per_page` (≤ 50) | ✅ |
-| T1.16 | Фільтр за статусом (застосовано / **відхилено**) | `PromoHistoryRequest` → `?status=` | ✅ |
+| T1.14 | This player's records only | `$request->user()->promoClaims()` | ✅ |
+| T1.15 | Pagination | `paginate()` + `per_page` (≤ 50) | ✅ |
+| T1.16 | Status filter (applied / **rejected**) | `PromoHistoryRequest` → `?status=` | ✅ |
 
-> **Пастка.** Наявність фільтра «відхилено» означає, що **невдалі спроби теж пишуться в БД**.
-> Інакше фільтрувати нема за чим. Реалізовано: кожен відхилений claim створює рядок зі статусом
-> `rejected` і причиною — і лише потім повертається помилка.
+> **The trap.** The existence of a "rejected" filter means **failed attempts are written to the
+> DB too**. Otherwise there is nothing to filter. Implemented: every rejected claim creates a row
+> with status `rejected` and a reason — and only then is the error returned.
 >
-> **Рішення поверх умови:** в умові названо два значення фільтра, але після Тікета 2 з'явиться
-> третій стан — `revoked`. Підтримуємо `applied` / `rejected` / `revoked` і «усі», інакше
-> скасовані нарахування зникнуть зі списку й це виглядатиме як баг.
+> **A decision on top of the brief:** the brief names two filter values, but after Ticket 2 a
+> third state appears — `revoked`. We support `applied` / `rejected` / `revoked` and "all",
+> otherwise revoked claims would vanish from the list and that would look like a bug.
 
-### Тікет 1 — Frontend
-| # | Вимога | Де | |
+### Ticket 1 — Frontend
+| # | Requirement | Where | |
 |---|---|---|---|
-| T1.17 | Форма введення промокоду | `PromoClaimForm.vue` | ✅ |
-| T1.18 | Стан «завантаження» | те саме | ✅ |
-| T1.19 | Стан «успіх» | те саме | ✅ |
-| T1.20 | Стан «помилка» **з текстом причини** | текст показуємо як прийшов із сервера, `reason` лишається для логіки | ✅ |
-| T1.21 | Під формою — список історії | `PromoHistory.vue` | ✅ |
-| T1.22 | В історії: дата | те саме, `Intl.DateTimeFormat('uk-UA')` | ✅ |
-| T1.23 | В історії: сума | те саме, `—` для відхилених | ✅ |
-| T1.24 | В історії: статус | те саме, кольоровий бейдж | ✅ |
+| T1.17 | A promo code input form | `PromoClaimForm.vue` | ✅ |
+| T1.18 | "Loading" state | same | ✅ |
+| T1.19 | "Success" state | same | ✅ |
+| T1.20 | "Error" state **with the reason text** | the text is shown as it came from the server; `reason` stays for the logic | ✅ |
+| T1.21 | The history list below the form | `PromoHistory.vue` | ✅ |
+| T1.22 | In the history: date | same, `Intl.DateTimeFormat('uk-UA')` | ✅ |
+| T1.23 | In the history: amount | same, `—` for rejected ones | ✅ |
+| T1.24 | In the history: status | same, a coloured badge | ✅ |
 
-> Історія перезавантажується не лише після успіху, а й після **бізнес-відмови (409)** — сервер
-> її записав, отже список застарів. Валідація `422` нічого не пише, тому її ігноруємо.
+> The history is refetched not only after a success but also after a **business refusal (409)** —
+> the server recorded it, so the list is stale. A `422` validation error writes nothing, so we
+> ignore it.
 
-### Тікет 2
-| # | Вимога | Де | |
+### Ticket 2
+| # | Requirement | Where | |
 |---|---|---|---|
 | T2.1 | `PATCH /api/promo/{claimId}/revoke` | `routes/api.php` | ✅ |
-| T2.2 | Скасовує нарахування | `PromoService::revoke()` | ✅ |
-| T2.3 | Знімає суму з балансу | `WalletService::debit()`, від'ємна проводка | ✅ |
-| T2.4 | Повторний виклик → **помилка**, не тихе подвійне списання | статус + unique на ledger | ✅ |
-| T2.5 | Кнопка «Скасувати» напроти кожного **застосованого** коду | `PromoHistory.vue`, поле `can_revoke` | ✅ |
-| T2.6 | Підтвердження дії | `ConfirmDialog.vue` (власна модалка) | ✅ |
-| T2.7 | Оновлення статусу після скасування | рефетч історії | ✅ |
-| T2.8 | Оновлення балансу після скасування | баланс із відповіді | ✅ |
-| T2.9 | Виконується **після** Тікета 1, у тому ж проєкті | порядок комітів | ✅ |
+| T2.2 | Revokes the claim | `PromoService::revoke()` | ✅ |
+| T2.3 | Removes the amount from the balance | `WalletService::debit()`, a negative ledger entry | ✅ |
+| T2.4 | A repeated call → **an error**, not a silent double debit | status + the unique index on the ledger | ✅ |
+| T2.5 | A "Revoke" button next to each **applied** code | `PromoHistory.vue`, the `can_revoke` field | ✅ |
+| T2.6 | Confirmation of the action | `ConfirmDialog.vue` (our own modal) | ✅ |
+| T2.7 | The status updates after the revoke | history refetch | ✅ |
+| T2.8 | The balance updates after the revoke | balance from the response | ✅ |
+| T2.9 | Done **after** Ticket 1, in the same project | commit order | ✅ |
 
-### Захист від зловживань (преамбула умови)
-| # | Вимога | Де | |
+### Abuse protection (the brief's preamble)
+| # | Requirement | Where | |
 |---|---|---|---|
-| X1 | Коректність | 52 тести бекенду + 36 фронтенду | ✅ триває |
-| X2 | Немає подвійного нарахування | partial unique `(user_id, promo_code_id)` + unique на ledger, `SchemaGuardsTest` | ✅ |
-| X3 | Немає від'ємних сум | `unsigned` на сумі бонусу; guard `balanceAfter < 0` у `WalletService` під локом | ✅ |
+| X1 | Correctness | 52 backend tests + 36 frontend ones | ✅ ongoing |
+| X2 | No double crediting | partial unique `(user_id, promo_code_id)` + a unique index on the ledger, `SchemaGuardsTest` | ✅ |
+| X3 | No negative amounts | `unsigned` on the bonus amount; a `balanceAfter < 0` guard in `WalletService` under a lock | ✅ |
 
-### Що надіслати
-| # | Вимога | Де | |
+### What to submit
+| # | Requirement | Where | |
 |---|---|---|---|
-| D1 | Посилання на репо | GitHub | ✅ |
-| D2 | Лог промптів (по тікетах, ітерації, виправлення) | `docs/PROMPT-LOG.md` | ✅ ведеться |
-| D3 | Відео 2–5 хв **або** скріншоти запуску й обох фіч | `docs/SCREENSHOTS.md` — 10 знімків одного проходу; `docs/DEMO-SCRIPT.md` — сценарій, якщо писати ще й відео | ✅ |
-| D4 | Текстове рев'ю коду з Частини 2 | `docs/CODE-REVIEW.md` — 16 зауважень + таблиця «як вирішено в Частині 1» | ✅ |
+| D1 | A link to the repo | GitHub | ✅ |
+| D2 | A prompt log (per ticket, iterations, fixes) | `docs/PROMPT-LOG.md` | ✅ maintained |
+| D3 | A 2–5 min video **or** screenshots of the setup and both features | `docs/SCREENSHOTS.md` — 10 shots from a single pass | ✅ |
+| D4 | A written code review for Part 2 | `docs/CODE-REVIEW.md` — 16 findings + a "how it is solved in Part 1" table | ✅ |
 
 ---
 
-## Архітектура
+## Architecture
 
-**Гроші — цілі числа в центах** (`bigint`), ніяких float. Форматування — тільки в `App\Support\Money`,
-API віддає і `cents`, і `formatted`.
+**Money is integer cents** (`bigint`), no floats. Formatting lives only in `App\Support\Money`;
+the API returns both `cents` and `formatted`.
 
-**Баланс не мутується напряму.** Єдине місце, що рухає баланс, — `WalletService`: рядок у
-`wallet_transactions` + оновлення `users.balance_cents` в одній `DB::transaction()` під
-`lockForUpdate()`. Сума проводок гравця завжди дорівнює його балансу.
+**The balance is never mutated directly.** The only place that moves the balance is
+`WalletService`: a row in `wallet_transactions` + an update of `users.balance_cents` inside a
+single `DB::transaction()` under `lockForUpdate()`. The sum of a player's ledger entries always
+equals their balance.
 
-**Бізнес-логіка — у `PromoService`**, контролери тонкі. Валідація — Form Request.
-Відповіді — API Resources (`JsonResource::withoutWrapping()`, конверти іменуються явно).
-Статуси й причини — backed enum'и в `App\Enums`. Відмова бізнес-правила — `PromoException`
-з власним `render()` у 409.
+**Business logic lives in `PromoService`**; controllers are thin. Validation goes in a Form
+Request. Responses go through API Resources (`JsonResource::withoutWrapping()`, envelopes named
+explicitly). Statuses and reasons are backed enums in `App\Enums`. A business-rule refusal is a
+`PromoException` with its own `render()` producing a 409.
 
-### Таблиці
+### Tables
 
-`users` (+ до стандартних): `balance_cents` bigint, **не в `#[Fillable]`**
+`users` (on top of the standard columns): `balance_cents` bigint, **not in `#[Fillable]`**
 
-`promo_codes`: `code` (unique, зберігається upper), `bonus_amount_cents` **unsigned** bigint,
+`promo_codes`: `code` (unique, stored uppercased), `bonus_amount_cents` **unsigned** bigint,
 `expires_at` nullable
 
 `promo_claims`:
-- `user_id`, `promo_code_id` **nullable** (для спроб на неіснуючий код)
+- `user_id`, `promo_code_id` **nullable** (for attempts on a non-existent code)
 - `code_attempted`, `status`, `rejection_reason` nullable
-- `amount_cents` nullable (null для `rejected`), `revoked_at` nullable
-- **partial unique** `(user_id, promo_code_id) WHERE status <> 'rejected'` — головний захист від
-  подвійного нарахування; `revoked` теж блокує повторний claim, інакше з'явиться цикл
-  revoke → claim → revoke
+- `amount_cents` nullable (null for `rejected`), `revoked_at` nullable
+- **partial unique** `(user_id, promo_code_id) WHERE status <> 'rejected'` — the main protection
+  against double crediting; `revoked` also blocks a repeated claim, otherwise a
+  revoke → claim → revoke loop would appear
 
-`wallet_transactions`: `user_id`, `promo_claim_id`, `type`, `amount_cents` (знакова),
-`balance_after_cents`, unique `(promo_claim_id, type)` — **подвійний revoke неможливий навіть
-при гонці**, бо друга вставка впаде на індексі.
+`wallet_transactions`: `user_id`, `promo_claim_id`, `type`, `amount_cents` (signed),
+`balance_after_cents`, unique `(promo_claim_id, type)` — **a double revoke is impossible even
+under a race**, because the second insert fails on the index.
 
 ### API
 
-| Метод | Шлях | Успіх | Помилки |
+| Method | Path | Success | Errors |
 |---|---|---|---|
 | POST | `/api/login` | 200 `{token, player}` | 422 |
 | GET | `/api/me` | 200 `{player}` | 401 |
 | POST | `/api/logout` | 200 | 401 |
-| POST | `/api/promo/claim` | 200 `{claim, bonus_amount, balance}` | **422** формат · **409** `{reason}` |
+| POST | `/api/promo/claim` | 200 `{claim, bonus_amount, balance}` | **422** format · **409** `{reason}` |
 | GET | `/api/promo/history?status=&page=&per_page=` | 200 paginator | 422 |
-| PATCH | `/api/promo/{claimId}/revoke` | 200 `{claim, balance}` | **409** `already_revoked`/`not_applied`/`insufficient_balance` · **404** чужий claim |
+| PATCH | `/api/promo/{claimId}/revoke` | 200 `{claim, balance}` | **409** `already_revoked`/`not_applied`/`insufficient_balance` · **404** someone else's claim |
 
-Розділення **422 = формат** vs **409 = бізнес-правило** прямо закриває T1.11 і T1.12.
-Чужий claim → **404, не 403** — щоб не зливати факт існування чужих записів.
+The split **422 = format** vs **409 = business rule** directly covers T1.11 and T1.12.
+Someone else's claim → **404, not 403** — so as not to leak the fact that another player's
+records exist.
 
-> **Обмеження, які треба знати і не переоцінювати.** Часткові unique-індекси є в SQLite
-> і PostgreSQL, але **не в MySQL** — там цей інваріант довелося б виражати інакше.
-> Під SQLite блокування рівня рядка вироджене, тож `lockForUpdate()` тут декоративний,
-> і реальну гарантію дають саме unique-індекси. `CHECK` SQLite приймає лише при створенні
-> таблиці, тому додатність суми тримається на `unsigned` і на валідації.
+> **Limitations to know and not to overrate.** Partial unique indexes exist in SQLite and
+> PostgreSQL but **not in MySQL** — there this invariant would have to be expressed differently.
+> Under SQLite row-level locking is degenerate, so `lockForUpdate()` here is decorative and the
+> real guarantee comes from the unique indexes. SQLite only accepts `CHECK` at table creation
+> time, so the positivity of the amount rests on `unsigned` and on validation.
 
 ### Frontend
 
-Vue 3 + Composition API + `<script setup>`, Vite, **Tailwind CSS 4**, axios. У складі
-Laravel-репо (`resources/js`), без vue-router і без store — для двох екранів вони зайві.
+Vue 3 + Composition API + `<script setup>`, Vite, **Tailwind CSS 4**, axios. Inside the Laravel
+repo (`resources/js`), with no vue-router and no store — for two screens they are unnecessary.
 
-`api.js` (axios instance, Bearer з localStorage, інтерсептор 401 → подія `auth:expired`) ·
+`api.js` (axios instance, Bearer from localStorage, a 401 interceptor → the `auth:expired` event) ·
 `LoginForm.vue` · `BalanceCard.vue` · `PromoClaimForm.vue` (idle/loading/success/error) ·
-`PromoHistory.vue` (фільтр, пагінація, кнопка revoke лише при `can_revoke`) · `ConfirmDialog.vue`
+`PromoHistory.vue` (filter, pagination, the revoke button only when `can_revoke`) · `ConfirmDialog.vue`
 
-Підтвердження — **власна модалка, не `window.confirm`**: нативний діалог блокує браузерну
-автоматизацію під час перевірки і виглядає чужорідно.
+Confirmation is **our own modal, not `window.confirm`**: the native dialog blocks browser
+automation during verification and looks alien.
 
-Операції з грошима захищені від подвійного сабміту **в обробнику**, а не лише через `disabled`:
-Enter у полі сабмітить форму повз кнопку.
+Money operations are protected from a double submit **in the handler**, not just via `disabled`:
+Enter in the input submits the form bypassing the button.
 
-### Тести
+### Tests
 
-**Бекенд — PHPUnit** (`php artisan test`): claim успішний · 422 на формат · 409
-`not_found`/`expired`/`already_used` · відхилена спроба потрапила в історію · claim іншого
-гравця не зачеплений · гонка на унікальному індексі → 409 · пагінація · фільтр за статусом ·
-revoke міняє баланс і статус · **повторний revoke → 409** · revoke при нестачі → 409 ·
-чужий claim → 404 · баланс і сума ledger завжди сходяться.
+**Backend — PHPUnit** (`php artisan test`): a successful claim · 422 on format · 409
+`not_found`/`expired`/`already_used` · a rejected attempt landed in the history · another
+player's claim is untouched · a race on the unique index → 409 · pagination · the status filter ·
+a revoke changes the balance and the status · **a repeated revoke → 409** · a revoke with
+insufficient funds → 409 · someone else's claim → 404 · the balance and the ledger sum always
+reconcile.
 
-`SchemaGuardsTest` пише **напряму в БД, повз сервіси** — доводить, що інваріанти тримаються
-на схемі й переживуть помилку в коді.
+`SchemaGuardsTest` writes **directly to the DB, bypassing the services** — proving that the
+invariants rest on the schema and will survive a bug in the code.
 
-**Фронтенд — Vitest + @vue/test-utils** (`npm test`): стани форми, guard від подвійного
-сабміту, обробка токена при логіні, рендер балансу.
+**Frontend — Vitest + @vue/test-utils** (`npm test`): the form states, the double-submit guard,
+token handling on login, balance rendering.
 
-Критичні тести перевіряються **мутацією**: тимчасово ламаємо код і переконуємось, що тест
-падає. Тест, який не падає від зламаного коду, нічого не вартий.
+Critical tests are verified **by mutation**: we temporarily break the code and make sure the test
+fails. A test that does not fail on broken code is worth nothing.
 
 ---
 
-## Робочий процес (домовленість)
+## Workflow (agreed)
 
-- **Йдемо покроково.** Один крок = один логічний шматок зі списку нижче.
-- **Ріжемо вертикальними зрізами**: спочатку бекенд фічі з тестами, одразу за ним фронтенд
-  до неї. Не «весь API, потім весь UI».
-- **Завершивши крок, проходжу чотири пункти** й лише тоді зупиняюсь:
-  1. звірка з матрицею вимог вище — що закрито, де розходження;
-  2. перевірка на зайвий код — мертвий код, залишки скафолда, закоментоване, дублювання;
-  3. тести — **обидві** команди (`php artisan test` і `npm test`) + `pint --test`,
-     показати справжній вивід; плюс перевірка наживо в браузері;
-  4. пропозиція коміту з назвою та коротким описом.
-- **Після апруву — коміт і одразу пуш.** Окремо про пуш не перепитую.
-  Апрув стосується конкретного коміту, а не всіх наступних.
-- **Без апруву не комічу й не пушу ніколи**, але й мовчки не чекаю: ініціатива за мною,
-  рішення за користувачем.
-- Опис коміту короткий: subject у стилі conventional commits + 2–3 рядки суті.
-  Гілку не створюємо, історія лінійна в `main`.
-- Повідомлення коміту передаємо через `git commit -F <файл>`: PowerShell ламає лапки всередині
-  `-m`, це вже траплялось.
-- Питання по коду й правки на будь-якому кроці — норма, повертаємось і переробляємо.
+- **We go step by step.** One step = one logical chunk from the list below.
+- **We cut vertical slices**: first the backend of a feature with tests, immediately followed by
+  its frontend. Not "the whole API, then the whole UI".
+- **Having finished a step, I go through four points** and only then stop:
+  1. a check against the requirement matrix above — what is covered, where the discrepancies are;
+  2. a check for surplus code — dead code, scaffolding leftovers, commented-out chunks, duplication;
+  3. tests — **both** commands (`php artisan test` and `npm test`) + `pint --test`, showing the
+     real output; plus a live check in the browser;
+  4. a commit proposal with a title and a short description.
+- **After approval — commit and push right away.** I do not ask separately about pushing.
+  Approval applies to that specific commit, not to all the following ones.
+- **I never commit or push without approval**, but I do not wait silently either: the initiative
+  is mine, the decision is the user's.
+- The commit description is short: a conventional-commits-style subject + 2–3 lines of substance.
+  We do not create branches; history is linear on `main`.
+- Commit messages are passed via `git commit -F <file>`: PowerShell mangles quotes inside `-m`,
+  this has already happened.
+- Questions about the code and fixes at any step are normal — we go back and rework.
 
-## План комітів (U3)
+## Commit plan (U3)
 
-Зроблено:
+Done:
 
 1. ✅ `chore: init Laravel 13 + SQLite`
 2. ✅ `docs: project instructions, README and work log`
@@ -239,53 +244,54 @@ revoke міняє баланс і статус · **повторний revoke �
 10. ✅ `feat(ui): promo code form with loading, success and error states`
 11. ✅ `test(ui): cover Vue components with Vitest`
 
-Лишилось:
+Remaining:
 
 12. ✅ `feat(api): promo claim history`
-13. ✅ `feat(ui): promo history list` ← **Тікет 1 закрито**
-14. ✅ `feat(api): revoke a promo claim` + тести (повторний revoke, нестача балансу)
-15. ✅ `feat(ui): revoke button + confirm dialog` + тести ← **Тікет 2 закрито**
-16. `docs: code review and demo script`
+13. ✅ `feat(ui): promo history list` ← **Ticket 1 closed**
+14. ✅ `feat(api): revoke a promo claim` + tests (repeated revoke, insufficient balance)
+15. ✅ `feat(ui): revoke button + confirm dialog` + tests ← **Ticket 2 closed**
+16. `docs: code review`
 
-`docs/PROMPT-LOG.md` ведеться **паралельно роботі**, а не відновлюється в кінці.
-
----
-
-## Частина 2 — рев'ю коду (`docs/CODE-REVIEW.md`)
-
-Уже видно ~14 зауважень, згрупую по критичності:
-
-**Блокери:** GET на операцію, що змінює стан (кешування, префетч, CSRF через `<img>`, повтори) ·
-відсутня будь-яка автентифікація й авторизація — `{player}` з URL дозволяє нарахувати
-будь-кому · `$request->amount` без валідації: від'ємне значення **списує** кошти, рядок дає
-type juggling · race condition на `+=` без транзакції та блокування — класичний lost update ·
-жодного захисту від повторного нарахування, ендпоінт не ідемпотентний.
-
-**Суттєве:** немає ledger/аудиту для фінансової операції · float на грошах · немає rate limiting ·
-`success: true` завжди, помилки не обробляються · немає тестів.
-
-**Frontend:** `axios.get` для мутації · немає try/catch — unhandled rejection · немає стану
-завантаження й показу помилки · мутація `this.player.balance` напряму (ймовірно prop) замість emit.
+`docs/PROMPT-LOG.md` is maintained **in parallel with the work**, not reconstructed at the end.
 
 ---
 
-## Верифікація перед здачею
+## Part 2 — the code review (`docs/CODE-REVIEW.md`)
 
-1. `php artisan test` — усі зелені
-2. `npm test` — усі зелені
-3. `php vendor/bin/pint --test` — чисто
-4. `npm run build` — збірка проходить
+Around 14 findings are already visible; I will group them by severity:
+
+**Blockers:** a GET for a state-changing operation (caching, prefetch, CSRF via `<img>`, retries) ·
+no authentication or authorisation at all — `{player}` in the URL lets anyone be credited ·
+`$request->amount` without validation: a negative value **debits** funds, a string gives type
+juggling · a race condition on `+=` without a transaction and a lock — the classic lost update ·
+no protection against repeated crediting, the endpoint is not idempotent.
+
+**Significant:** no ledger/audit trail for a financial operation · floats on money · no rate
+limiting · `success: true` always, errors are not handled · no tests.
+
+**Frontend:** `axios.get` for a mutation · no try/catch — an unhandled rejection · no loading
+state and no error display · mutating `this.player.balance` directly (probably a prop) instead of
+emitting.
+
+---
+
+## Verification before submission
+
+1. `php artisan test` — all green
+2. `npm test` — all green
+3. `php vendor/bin/pint --test` — clean
+4. `npm run build` — the build passes
 5. `php artisan migrate:fresh --seed && php artisan serve` + `npm run dev`
-6. Прогін у браузері (Chrome automation, кліки **за `ref`**, не за координатами): логін →
-   claim валідного коду → баланс зріс → повторний claim → «вже використано» → невірний формат
-   → 422 → історія з фільтром і пагінацією → revoke з підтвердженням → баланс і статус
-   оновились → повторний revoke → помилка
-7. Фінальний прохід по **матриці вимог** вище — кожен рядок відмічений
-8. Перевірка, що історія комітів справді покрокова
+6. A pass in the browser (Chrome automation, clicks **by `ref`**, not by coordinates): login →
+   claim a valid code → the balance grew → a repeated claim → "already used" → an invalid format
+   → 422 → the history with the filter and pagination → a revoke with confirmation → the balance
+   and status updated → a repeated revoke → an error
+7. A final pass over the **requirement matrix** above — every row ticked
+8. A check that the commit history really is step by step
 
 ---
 
-## Поза скоупом
+## Out of scope
 
-Реєстрація, ролі/адмінка, ліміти використань промокоду, мультивалютність, вейджеринг,
-деплой, Docker, ESLint. Якщо щось із цього знадобиться — обговорюємо окремо.
+Registration, roles/admin panel, promo code usage limits, multi-currency, wagering, deployment,
+Docker, ESLint. If any of this becomes necessary — we discuss it separately.

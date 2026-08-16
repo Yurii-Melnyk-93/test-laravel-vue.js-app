@@ -1,529 +1,556 @@
-# Лог промптів
+# Prompt log
 
-Хронологія роботи з AI-інструментом (**Claude Code**, модель Opus 5) над цим завданням.
-Ведеться **паралельно роботі**, а не відновлюється наприкінці — тому тут є і хибні ходи,
-і виправлення, а не причесаний результат.
+A chronology of the work with the AI tool (**Claude Code**, the Opus 5 model) on this assignment.
+It is kept **in parallel with the work**, not reconstructed at the end — which is why it contains
+both wrong turns and fixes, rather than a tidied-up result.
 
-Формат: запит → що зробив інструмент → що довелось виправити.
-
----
-
-## Етап 0. Підготовка репозиторію
-
-**Промпт:** «з'єднай цю папку з https://github.com/Yurii-Melnyk-93/test-laravel-vue.js-app.git»
-
-Папка виявилась порожньою, віддалене репо — теж. Зроблено `git init -b main` + `remote add origin`.
-
-**Проблема:** `git ls-remote` упав з `unable to get local issuer certificate (20)`.
-Діагностовано перехоплення HTTPS антивірусом. Рішення — `http.sslBackend=schannel`
-(сховище сертифікатів Windows). Спершу поставлено локально в репо, потім винесено в глобальний
-конфіг, а локальний дублікат прибрано.
-
-**Промпт:** «де цей емейл? yurii@projectsimple.ai» → показано походження (`C:\Users\Admin\.gitconfig`).
-
-**Промпт:** «давай скрізь» + скріншот налаштувань GitHub.
-
-**Виправлення, ініційоване інструментом:** на скріншоті було видно ввімкнений
-*Keep my email addresses private*. Пряме прописування gmail злило б реальну пошту в історію
-комітів і могло заблокувати push. Замість мовчазного виконання поставлено питання й обрано
-noreply-адресу `92314891+Yurii-Melnyk-93@users.noreply.github.com`.
-
-**Ще одне виправлення:** інструмент заодно змінив `user.name`, чого не просили — повернув як було.
+Format: the request → what the tool did → what had to be fixed.
 
 ---
 
-## Етап 1. Планування
+## Stage 0. Preparing the repository
 
-**Промпт:** повний текст тестового завдання + «давай відразу розплануємо і будемо додавати всі
-необхідні описи в код і записи у файли. головне не пропустити жодної вимоги із завдання».
+**Prompt:** "connect this folder to https://github.com/Yurii-Melnyk-93/test-laravel-vue.js-app.git"
 
-Текст завдання розібрано на **30 атомарних вимог** з ідентифікаторами (U1–U3, T1.1–T1.24,
-T2.1–T2.9, X1–X3, D1–D4), кожна зіставлена з місцем у коді. Матриця — в `docs/PLAN.md`,
-вона ж контрольний список перед здачею.
+The folder turned out to be empty, and so was the remote repo. Did `git init -b main` +
+`remote add origin`.
 
-**Знайдена пастка в умові.** Тікет 1 вимагає фільтр історії за статусом «успішно застосовано /
-**відхилено**». Отже **невдалі спроби теж мають зберігатись у БД** — інакше фільтр фільтрує
-порожнечу. З побіжного читання тікета це не видно.
+**Problem:** `git ls-remote` failed with `unable to get local issuer certificate (20)`.
+Diagnosed as HTTPS interception by the antivirus. The fix — `http.sslBackend=schannel` (the
+Windows certificate store). First set locally in the repo, then moved to the global config, and
+the local duplicate was removed.
 
-Перед плануванням інструмент поставив 4 питання, де рішення за розробником:
+**Prompt:** "where is this email from? yurii@projectsimple.ai" → the origin was shown
+(`C:\Users\Admin\.gitconfig`).
 
-| Питання | Обрано |
+**Prompt:** "let's do it everywhere" + a screenshot of the GitHub settings.
+
+**A fix initiated by the tool:** the screenshot showed *Keep my email addresses private* enabled.
+Writing the gmail address in directly would have leaked the real mail into the commit history and
+could have blocked the push. Instead of silently complying, a question was asked and the noreply
+address `92314891+Yurii-Melnyk-93@users.noreply.github.com` was chosen.
+
+**One more fix:** the tool also changed `user.name`, which nobody asked for — reverted.
+
+---
+
+## Stage 1. Planning
+
+**Prompt:** the full text of the test assignment + "let's plan it out right away and keep adding
+all the necessary descriptions to the code and entries to the files. the main thing is not to
+miss a single requirement from the assignment".
+
+The assignment text was broken down into **30 atomic requirements** with identifiers (U1–U3,
+T1.1–T1.24, T2.1–T2.9, X1–X3, D1–D4), each mapped to a place in the code. The matrix lives in
+`docs/PLAN.md` and doubles as the pre-submission checklist.
+
+**A trap found in the brief.** Ticket 1 requires a history filter by status "successfully applied /
+**rejected**". Therefore **failed attempts must be stored in the DB too** — otherwise the filter
+filters emptiness. This is not visible from a cursory reading of the ticket.
+
+Before planning, the tool asked 4 questions where the decision belongs to the developer:
+
+| Question | Chosen |
 |---|---|
-| Чим ставити PHP (на машині не було ні PHP, ні Composer) | Laravel Herd для Windows |
-| Скасування, коли гравець уже витратив бонус | Заборонити з `409 insufficient_balance` |
-| Стиль Vue | Composition API + `<script setup>` |
-| Обсяг автентифікації | Sanctum + мінімальна форма логіну, 2 засіяні гравці |
+| How to install PHP (the machine had neither PHP nor Composer) | Laravel Herd for Windows |
+| A revoke when the player has already spent the bonus | Forbid it with `409 insufficient_balance` |
+| Vue style | Composition API + `<script setup>` |
+| Scope of authentication | Sanctum + a minimal login form, 2 seeded players |
 
-**Ітерація:** перший варіант плану передбачав автономне виконання з комітами.
-Відхилено: «давай мануально, хочу бачити що ти написав… сам не коміть, поки не попрошу».
-У план додано розділ «Робочий процес»: крок → показ коду → пауза, коміти лише за прямим запитом.
+**Iteration:** the first version of the plan assumed autonomous execution with commits.
+Rejected: "let's do it manually, I want to see what you wrote… don't commit yourself until I ask".
+A "Workflow" section was added to the plan: step → show the code → pause, commits only on an
+explicit request.
 
-**Промпт:** «запиши і запам'ятай цей план на випадок раптового переривання».
-План продубльовано в `docs/PLAN.md` + записано у файлову пам'ять інструмента.
-
----
-
-## Етап 2. Середовище та скафолд
-
-**Промпт:** «встановив» → перевірка показала, що Herd поставив лише GUI-застосунок,
-а тека `~/.config/herd/bin` порожня: PHP докачується при першому запуску.
-
-**Промпт:** «запустив» → PHP 8.4.24 + Composer 2.10.1, усі 12 потрібних розширень на місці.
-
-**Проблема:** `composer create-project` упав з тією ж помилкою сертифіката, що й git на етапі 0.
-Composer прямо назвав причину — **Avast Firewall**. У сховищі Windows знайдено корінь
-`CN=Avast Web/Mail Shield Root`.
-
-**Хибний хід:** спершу зібрано bundle з коренів Windows і виставлено `SSL_CERT_FILE` —
-не спрацювало. Причина: Herd **явно** прописує `curl.cainfo` і `openssl.cafile` у своєму `php.ini`,
-а явна директива перебиває змінну оточення.
-
-**Рішення:** корінь Avast дописано в той самий bundle, на який вказує Herd
-(`~/.config/herd/config/php/cacert.pem`, бекап поруч). Перевірку сертифікатів **не вимикали** —
-довіряємо тому ж кореню, що вже довіряє Windows. `npm ping` проходив без правок.
-
-**Скафолд:** `composer create-project laravel/laravel` у тимчасову теку й перенос у проєкт
-(папка вже містила `.git`, `CLAUDE.md` і `docs/`, а `create-project` вимагає порожню).
-Отримано **Laravel 13.25.0**, SQLite за замовчуванням, міграції пройшли.
-
-**Виправлення:** інструмент додав правила для `*.sqlite` у корневий `.gitignore`, потім виявив,
-що Laravel возить власний `database/.gitignore` з `*.sqlite*` — свої рядки прибрав, щоб не
-лишати дубля.
-
-**Виправлення від користувача:** «а де крок 2?» — інструмент зробив `CLAUDE.md` не за порядком
-(ще до скафолда), а README пропустив, і в проєкті лишався стоковий README Laravel.
-Написано проєктний README.
+**Prompt:** "write down and remember this plan in case of a sudden interruption."
+The plan was duplicated into `docs/PLAN.md` + written into the tool's file memory.
 
 ---
 
-## Етап 2.5. Чистка скафолда
+## Stage 2. Environment and scaffolding
 
-**Промпт:** «якщо перші 2 кроки закриті, перевіримо на зайвий код і запустимо наявні тести».
+**Prompt:** "installed" → a check showed that Herd had only installed the GUI application, while
+the `~/.config/herd/bin` directory was empty: PHP is downloaded on first launch.
 
-Тести зі скафолда проходили (2 passed), але обидва — заглушки: `assertTrue(true)` і перевірка
-стокової welcome-сторінки. Реального покриття нуль.
+**Prompt:** "launched" → PHP 8.4.24 + Composer 2.10.1, all 12 required extensions in place.
 
-Знайдено й **прибрано**: демо-команду `inspire` з `routes/console.php`, обидва `ExampleTest`.
-Файл `routes/console.php` не видаляли — на нього посилається `bootstrap/app.php:11`, тому
-лише очищено вміст.
+**Problem:** `composer create-project` failed with the same certificate error as git in stage 0.
+Composer named the cause outright — **Avast Firewall**. The root `CN=Avast Web/Mail Shield Root`
+was found in the Windows store.
 
-**Рішення по розходженнях із планом:**
+**A wrong turn:** first a bundle was assembled from the Windows roots and `SSL_CERT_FILE` was set —
+it did not work. The reason: Herd **explicitly** writes `curl.cainfo` and `openssl.cafile` into its
+own `php.ini`, and an explicit directive overrides the environment variable.
 
-| Що | Рішення |
+**The fix:** the Avast root was appended to the very bundle Herd points at
+(`~/.config/herd/config/php/cacert.pem`, with a backup next to it). Certificate verification was
+**not** disabled — we trust the same root Windows already trusts. `npm ping` worked without any
+changes.
+
+**Scaffolding:** `composer create-project laravel/laravel` into a temporary directory and then
+moved into the project (the folder already contained `.git`, `CLAUDE.md` and `docs/`, while
+`create-project` requires an empty one). The result: **Laravel 13.25.0**, SQLite by default,
+migrations passed.
+
+**Fix:** the tool added rules for `*.sqlite` to the root `.gitignore`, then discovered that Laravel
+ships its own `database/.gitignore` with `*.sqlite*` — it removed its own lines so as not to leave
+a duplicate.
+
+**A fix from the user:** "where is step 2?" — the tool had done `CLAUDE.md` out of order (before
+the scaffolding) and skipped the README, so the project still had Laravel's stock README. A project
+README was written.
+
+---
+
+## Stage 2.5. Cleaning up the scaffolding
+
+**Prompt:** "if the first 2 steps are closed, let's check for surplus code and run the existing
+tests."
+
+The scaffolding tests passed (2 passed), but both were stubs: `assertTrue(true)` and a check of the
+stock welcome page. Real coverage: zero.
+
+Found and **removed**: the `inspire` demo command from `routes/console.php`, both `ExampleTest`s.
+The `routes/console.php` file was not deleted — `bootstrap/app.php:11` references it, so only its
+contents were cleared.
+
+**Decisions on discrepancies with the plan:**
+
+| What | Decision |
 |---|---|
-| Скафолд привіз Tailwind CSS 4, у плані його не було | лишити — економить час на формах, таблиці, станах і модалці |
-| `vite.config.js` тягнув шрифт з bunny.net під час збірки | прибрати — мережевий запит на етапі build і зайва поверхня для того ж Avast |
-| У плані був Pest, скафолд дав PHPUnit 12.5 | лишити PHPUnit — нуль додаткових залежностей |
-| Метадані `laravel/laravel` у `composer.json` | лишити як є (рішення користувача) |
+| The scaffolding brought Tailwind CSS 4, which was not in the plan | keep it — it saves time on the forms, the table, the states and the modal |
+| `vite.config.js` pulled a font from bunny.net during the build | remove it — a network request at build time and extra surface for that same Avast |
+| The plan said Pest, the scaffolding gave PHPUnit 12.5 | keep PHPUnit — zero extra dependencies |
+| The `laravel/laravel` metadata in `composer.json` | leave as is (the user's decision) |
 
-**Знайдено побічно:** у `app.css` бракувало `@source '../js/**/*.vue'`. Без цього Tailwind не
-сканує Vue-компоненти й вирізає з продакшн-збірки всі використані в них класи — верстка
-розсипалась би саме на `npm run build`, а в дев-режимі виглядала б нормально. Додано одразу.
+**Found in passing:** `app.css` was missing `@source '../js/**/*.vue'`. Without it Tailwind does not
+scan the Vue components and strips every class used in them from the production build — the layout
+would have fallen apart precisely on `npm run build` while looking fine in dev mode. Added
+immediately.
 
-**Виправлення:** перший коментар у `routes/console.php` написано українською — cSpell одразу дав
-5 попереджень. Сусідній код (увесь Laravel) англійською, тож домовились: **коментарі в коді —
-англійською**, README і `docs/` — українською.
+**Fix:** the first comment in `routes/console.php` was written in Ukrainian — cSpell immediately
+raised 5 warnings. The neighbouring code (all of Laravel) is in English, so it was agreed:
+**comments in code — English**.
 
-Після чистки: `php artisan test` → `No tests found` (чесний стан — справжні тести з'являться
-разом з API), `route:list` показує 4 маршрути, застосунок піднімається.
-
----
-
-## Етап 2.7. Vue + axios
-
-**Промпт:** «давай крок 3».
-
-Vue 3 + axios у наявний Vite, `App.vue` як оболонка, `app.blade.php` замість стокової
-welcome-сторінки. `api.js` вішає `Bearer` на кожен запит і чистить токен на 401.
-
-**Перевірено на збірці, а не лише в дев-режимі:** класи, використані **тільки** в `.vue`
-(`max-w-3xl`, `tracking-tight`, `text-slate-500`), присутні в зібраному CSS. Це підтвердило,
-що доданий раніше `@source` справді потрібен.
-
-**Мало не викинули потрібне:** пакет `concurrently` виглядав мертвим — жоден npm-скрипт його
-не викликає. Перед видаленням перевірили: `DevCommand.php:67` показує, що на **Windows**
-`php artisan dev` запускається саме через нього. Лишили.
+After the cleanup: `php artisan test` → `No tests found` (an honest state — real tests will appear
+together with the API), `route:list` shows 4 routes, the application boots.
 
 ---
 
-## Етап 2.8. Автентифікація (Sanctum)
+## Stage 2.7. Vue + axios
 
-**Промпт:** «давай крок 4».
+**Prompt:** "let's do step 3."
 
-`php artisan install:api` → `routes/api.php` + Sanctum. Далі `HasApiTokens`, колонка
-`balance_cents` (bigint, cents), `POST /api/login`, `GET /api/me`, `POST /api/logout`,
-сідер із двома гравцями.
+Vue 3 + axios into the existing Vite, `App.vue` as the shell, `app.blade.php` instead of the stock
+welcome page. `api.js` attaches `Bearer` to every request and clears the token on a 401.
 
-**Рішення по безпеці, прийняті одразу, а не «потім»:**
+**Verified on the build, not only in dev mode:** the classes used **only** in `.vue` files
+(`max-w-3xl`, `tracking-tight`, `text-slate-500`) are present in the compiled CSS. This confirmed
+that the `@source` added earlier really is needed.
 
-- `balance_cents` **навмисно не в `#[Fillable]`** — баланс не може змінитись через mass
-  assignment, лише через сервіс. У фабрику довелося додати стан `withBalance()`, який
-  проставляє значення через `forceFill`.
-- Логін віддає **однакову відповідь** для «немає такого email» і «невірний пароль» — інакше
-  ендпоінт стає інструментом для перебору зареєстрованих адрес. На це є окремий тест,
-  який порівнює тіла відповідей побайтово.
-- `logout` відкликає **лише поточний токен**, а не всі сесії гравця.
-- `throttle:6,1` на логіні.
-
-**Знайдено й виправлено під час перевірки:** `POST /api/login` віддавав гравця без обгортки,
-а `GET /api/me` — загорнутого в `data` (стандартна поведінка `JsonResource`). Фронтенду
-довелося б розбирати два різні формати. Додано `JsonResource::withoutWrapping()` і явні
-ключі-конверти; пагінація свою структуру `data/meta/links` зберігає.
-
-**Тест, який упав по-справжньому.** `test_logout_revokes_only_the_current_token` очікував 401
-після виходу, а отримав 200. Проти живого сервера logout працював правильно — тобто справа
-була в тестовому оточенні: guard кешує розвʼязаного користувача на час життя тестового
-застосунку. Додано `forgetGuards()` між запитами плюс перевірку стану БД. Якби «полагодили»
-підганянням очікування під 200, тест би мовчки прикривав робочий код.
-
-**Pint** знайшов зміщані закінчення рядків у `bootstrap/app.php` — наслідок `install:api`.
-Виправлено, `pint --test` чистий.
-
-Підсумок: 7 тестів, 27 перевірок, усі зелені.
+**Nearly threw away something needed:** the `concurrently` package looked dead — no npm script
+invokes it. Before deleting it we checked: `DevCommand.php:67` shows that on **Windows**
+`php artisan dev` runs precisely through it. Kept.
 
 ---
 
-## Етап 2.9. Схема БД
+## Stage 2.8. Authentication (Sanctum)
 
-**Промпт:** «далі».
+**Prompt:** "let's do step 4."
 
-Три таблиці (`promo_codes`, `promo_claims`, `wallet_transactions`), три backed enum'и,
-моделі, фабрики, сідер промокодів і `SchemaGuardsTest`.
+`php artisan install:api` → `routes/api.php` + Sanctum. Then `HasApiTokens`, the `balance_cents`
+column (bigint, cents), `POST /api/login`, `GET /api/me`, `POST /api/logout`, and a seeder with two
+players.
 
-**Головне рішення — інваріанти живуть у схемі, а не в коді.** Тести в `SchemaGuardsTest`
-навмисно пишуть **напряму в БД, повз сервіси**: перевірка `if` не рятує від двох одночасних
-запитів, які обидва пройшли її до того, як хтось записав.
+**Security decisions taken right away rather than "later":**
 
-**Виправлено власну неточність у README.** Раніше було написано, що unique-індекси «працюють
-однаково на SQLite і MySQL». Для **часткового** індексу це неправда — MySQL їх не підтримує.
-README переписано з чесним переліком обмежень: часткові індекси є в SQLite і PostgreSQL,
-`lockForUpdate()` під SQLite декоративний, `CHECK` SQLite приймає лише при створенні таблиці,
-тому додатність суми тримається на `unsigned`, а не на `CHECK`.
+- `balance_cents` is **deliberately not in `#[Fillable]`** — the balance cannot change through mass
+  assignment, only through the service. The factory had to gain a `withBalance()` state that sets
+  the value via `forceFill`.
+- Login returns **an identical response** for "no such email" and "wrong password" — otherwise the
+  endpoint becomes a tool for enumerating registered addresses. There is a dedicated test that
+  compares the response bodies byte for byte.
+- `logout` revokes **only the current token**, not all of the player's sessions.
+- `throttle:6,1` on login.
 
-**Тести, що мало не пройшли даремно.** Спершу перевірки були написані як
-`expectException(QueryException::class)`. Такий тест зеленіє від **будь-якої** помилки запиту —
-включно з друкарською помилкою у фабриці. Додано хелпер `assertViolates()`, який вимагає, щоб
-у повідомленні була конкретна пара колонок. Виявилось, що SQLite повідомляє не назву індексу,
-а саме колонки — перша спроба прив'язатись до назви впала, і це було корисно.
+**Found and fixed during verification:** `POST /api/login` returned the player unwrapped, while
+`GET /api/me` returned it wrapped in `data` (the standard `JsonResource` behaviour). The frontend
+would have had to parse two different formats. Added `JsonResource::withoutWrapping()` and explicit
+envelope keys; pagination keeps its own `data/meta/links` structure.
 
-**Зіпсував файл власною командою.** Заміна рядків через `Set-Content -Encoding utf8`
-у PowerShell 5.1 додала BOM, і PHP упав із `Namespace declaration statement has to be the very
-first statement`. BOM прибрано, репозиторій перевірено на BOM цілком — більше ніде немає.
+**A test that genuinely failed.** `test_logout_revokes_only_the_current_token` expected a 401 after
+logging out and got a 200. Against a live server logout worked correctly — so the issue was in the
+test environment: the guard caches the resolved user for the lifetime of the test application.
+Added `forgetGuards()` between requests plus a check of the DB state. Had we "fixed" it by bending
+the expectation to 200, the test would have silently covered up working code.
 
-Підсумок: 14 тестів, 35 перевірок.
+**Pint** found mixed line endings in `bootstrap/app.php` — a consequence of `install:api`. Fixed;
+`pint --test` is clean.
 
----
-
-## Етап 3. Тікет 1 — нарахування бонусу
-
-**Промпт:** «робимо крок 7».
-
-`POST /api/promo/claim`: `ClaimPromoRequest` з regex, `PromoService`, `WalletService`,
-`PromoException`, `PromoClaimResource`, `PromoController`, 17 тестів.
-
-**Найтонше місце — відхилена спроба мусить пережити помилку.** Наївна реалізація загортає
-всю логіку в одну транзакцію, але тоді `throw` відкочує разом із собою й запис про відмову,
-і в історії не лишається нічого. Тому `reject()` викликається **поза** транзакцією нарахування.
-Перевірено наживо: після трьох невдалих спроб у БД справді лежать три рядки `rejected`.
-
-**Дві лінії захисту від подвійного нарахування, а не одна:**
-1. явна перевірка `alreadyConsumed()` — швидкий і зрозумілий шлях для звичайного випадку;
-2. `catch (UniqueConstraintViolationException)` — страховка на випадок гонки, коли два запити
-   пройшли перевірку раніше, ніж будь-хто встиг записати.
-
-Предикат перевірки навмисно повторює предикат індексу (`status <> 'rejected'`), щоб правило
-не розповзалося у двох місцях із різними формулюваннями.
-
-**Гілка, яку тести не покривали.** Усі 17 тестів пройшли з першого разу — і це було підозріло:
-`catch` для гонки недосяжний, бо попередня перевірка перехоплює дублікат раніше. Написано тест,
-який відтворює гонку по-справжньому: слухач `PromoClaim::creating` вставляє конкурентний рядок
-рівно між перевіркою та вставкою.
-
-**Перевірено мутацією.** Щоб переконатися, що новий тест не зеленіє випадково, обробку
-винятку тимчасово замінено на прокидання далі — тест упав із **500** і
-`UNIQUE constraint failed` на `PromoService.php:47`. Тобто він справді доходить до потрібної
-гілки. Код повернуто.
-
-**Валідація не пише в історію.** Свідоме рішення: `422` — це не спроба застосувати промокод,
-а помилка вводу. Інакше історія засмічувалась би друкарськими помилками. Є окремий тест.
+Result: 7 tests, 27 assertions, all green.
 
 ---
 
-## Етап 3.5. Форма промокоду
+## Stage 2.9. The DB schema
 
-**Промпт:** «давай далі» → `PromoClaimForm.vue` зі станами `idle / loading / success / error`.
+**Prompt:** "next."
 
-**Рішення:** новий баланс береться **з відповіді claim**, а не другим запитом до `/me` — саме
-заради цього вимога T1.9 просить повертати баланс. Текст помилки показується так, як його
-сформулював сервер, а `reason` лишається для машинної логіки: тримати другу копію формулювань
-на клієнті означає гарантовано їх розсинхронізувати.
+Three tables (`promo_codes`, `promo_claims`, `wallet_transactions`), three backed enums, models,
+factories, a promo code seeder and `SchemaGuardsTest`.
 
-**Промпт:** «ще блокувати кнопку поки йде запит треба, щоб уникнути подвійного натискання».
+**The key decision — the invariants live in the schema, not in the code.** The tests in
+`SchemaGuardsTest` deliberately write **directly to the DB, bypassing the services**: an `if` check
+does not save you from two simultaneous requests that both passed it before either one wrote
+anything.
 
-Кнопка вже була заблокована через `canSubmit`, але зауваження по суті правильне: цього замало.
-Форма сабмітиться ще й клавішею **Enter** у полі — це шлях повз кнопку. Додано guard усередині
-обробника (`if (status === 'loading') return`) плюс блокування самого поля.
+**Fixed an inaccuracy of my own in the README.** It previously said that the unique indexes "work
+the same on SQLite and MySQL". For a **partial** index that is untrue — MySQL does not support
+them. The README was rewritten with an honest list of limitations: partial indexes exist in SQLite
+and PostgreSQL, `lockForUpdate()` is decorative under SQLite, and SQLite only accepts `CHECK` at
+table creation time, so the positivity of the amount rests on `unsigned` rather than on a `CHECK`.
 
-**Перевірено вимірюванням, а не оглядом:** три швидкі Enter підряд дали рівно **один**
-`POST /api/promo/claim`, баланс змінився з 150.00 на 200.00. Без guard'а другий і третій запити
-пішли б на сервер і повернули 409 — гроші не задвоїлись би завдяки індексу, але користувач
-побачив би помилку замість успіху.
+**Tests that almost passed for nothing.** At first the checks were written as
+`expectException(QueryException::class)`. Such a test goes green on **any** query error — including
+a typo in the factory. An `assertViolates()` helper was added that requires the message to contain
+the specific pair of columns. It turned out that SQLite reports the columns rather than the index
+name — the first attempt, which keyed on the name, failed, and that was useful.
 
----
+**Broke a file with my own command.** Replacing lines via `Set-Content -Encoding utf8` in
+PowerShell 5.1 added a BOM, and PHP failed with `Namespace declaration statement has to be the very
+first statement`. The BOM was removed and the whole repository was checked for BOMs — there are
+none anywhere else.
 
-## Етап 3.6. Тести фронтенду
-
-**Промпт:** «не забуваємо робити тести і для фронта, і перевіряти прямо в браузері».
-
-Справедливе зауваження: бекенд мав 31 тест, а три Vue-компоненти — жодного. Фронт перевірявся
-лише очима в браузері, тож регресія в ньому пройшла б непоміченою.
-
-Поставлено **Vitest + @vue/test-utils + jsdom**, окремий `vitest.config.js` (щоб не чіпати
-`vite.config.js`, яким володіє Laravel-плагін), скрипти `npm test` і `npm run test:watch`.
-15 тестів на три компоненти.
-
-**Два падіння, обидва — помилки в тестах, не в коді:**
-
-1. «викликано 5 разів замість 1» — лічильник мока накопичувався між тестами файлу.
-   Тобто перевірка «викликано один раз» насправді міряла всю добірку. Полагоджено
-   `clearMocks: true`. Варто запам'ятати: без цього такий тест **ніколи не впаде чесно**.
-2. Кнопка лишалась `disabled` після успіху — і це правильна поведінка: поле очищується,
-   а порожній код сабмітити не можна. Очікування в тесті було хибним, не код.
-
-**Перевірено мутацією.** Щоб переконатися, що тест на подвійний сабміт справді щось ловить,
-guard тимчасово прибрано — тест упав із «3 виклики замість 1». Код повернуто.
+Result: 14 tests, 35 assertions.
 
 ---
 
-## Етап 3.7. Звірка плану
+## Stage 3. Ticket 1 — crediting a bonus
 
-**Промпт:** «перевір чи треба зкоригувати наш план».
+**Prompt:** "let's do step 7."
 
-Знайдено вісім розходжень. Найнеприємніше — **та сама неточність удруге**: у плані досі стояло,
-що unique-індекси «працюють однаково на SQLite і MySQL». Це виправлялось у README на етапі схеми,
-але в план не перенеслось, і документ лишався неправдивим для *часткового* індексу.
+`POST /api/promo/claim`: `ClaimPromoRequest` with a regex, `PromoService`, `WalletService`,
+`PromoException`, `PromoClaimResource`, `PromoController`, 17 tests.
 
-Інші: `CHECK > 0` замість фактичного `unsigned`; «Pest» замість PHPUnit; жодної згадки про
-Vitest і Tailwind; `npm run lint` у верифікації, хоч такого скрипта не існує (ESLint не
-налаштований — винесено в «поза скоупом» явно, щоб це було рішенням, а не забутим пунктом);
-застарілий Context про порожню папку; імена файлів, що розійшлись із фактичними.
+**The subtlest spot — a rejected attempt must survive the error.** The naive implementation wraps
+all the logic in one transaction, but then the `throw` rolls back the refusal record along with
+everything else and nothing is left in the history. That is why `reject()` is called **outside**
+the crediting transaction. Verified live: after three failed attempts there really are three
+`rejected` rows in the DB.
 
-Матриця вимог отримала колонку статусу — тепер це живий чек-лист, а не знімок задуму.
+**Two lines of defence against double crediting, not one:**
+1. an explicit `alreadyConsumed()` check — the fast, readable path for the ordinary case;
+2. `catch (UniqueConstraintViolationException)` — insurance for a race where two requests passed
+   the check before anyone managed to write.
 
----
+The check's predicate deliberately mirrors the index predicate (`status <> 'rejected'`) so that the
+rule does not scatter across two places with different wordings.
 
-## Етап 3.8. Історія застосувань
+**A branch the tests did not cover.** All 17 tests passed on the first run — and that was
+suspicious: the race `catch` is unreachable, because the preceding check intercepts the duplicate
+earlier. A test was written that reproduces the race for real: a `PromoClaim::creating` listener
+inserts a competing row exactly between the check and the insert.
 
-**Промпт:** «далі робимо наступний крок за планом».
+**Verified by mutation.** To make sure the new test does not go green by accident, the exception
+handling was temporarily replaced with a rethrow — the test failed with a **500** and
+`UNIQUE constraint failed` at `PromoService.php:47`. So it really does reach the branch in
+question. The code was restored.
 
-`GET /api/promo/history`: `PromoHistoryRequest`, пагінація, фільтр за статусом, 13 тестів.
-
-**Рішення поверх умови:** в умові названо два значення фільтра, але після Тікета 2 з'явиться
-третій стан — `revoked`. Підтримано всі три плюс «усі», інакше скасовані нарахування зникали б
-зі списку, і це виглядало б як баг.
-
-**Дрібниці, які легко проґавити:**
-- невідомий статус повертає **422**, а не мовчки ігнорується — інакше фільтр «нічого не знайшов»
-  неможливо відрізнити від фільтра «я тебе не зрозумів»;
-- `per_page` обмежений 50, щоб одним запитом не витягнути всю таблицю;
-- `withQueryString()` — без нього друга сторінка тихо губить фільтр. На це є окремий тест.
-
-**Перевірено мутацією:** запит переведено з `$request->user()->promoClaims()` на
-`PromoClaim::query()` — тест ізоляції одразу побачив 5 чужих записів замість 2. Тобто
-найважливіша гарантія цього ендпоінта справді перевіряється.
+**Validation does not write to the history.** A conscious decision: a `422` is not an attempt to
+apply a promo code but an input error. Otherwise the history would fill up with typos. There is a
+dedicated test.
 
 ---
 
-## Етап 3.9. Список історії — Тікет 1 закрито
+## Stage 3.5. The promo code form
 
-**Промпт:** «робимо».
+**Prompt:** "let's continue" → `PromoClaimForm.vue` with the `idle / loading / success / error`
+states.
 
-`PromoHistory.vue`: список із датою, сумою й статусом, фільтр за чотирма значеннями,
-пагінація по 5, порожній стан, обробка помилки завантаження. 9 тестів Vitest.
+**Decision:** the new balance is taken **from the claim response**, not from a second request to
+`/me` — that is exactly why requirement T1.9 asks for the balance to be returned. The error text is
+displayed as the server phrased it, while `reason` remains for machine logic: keeping a second copy
+of the wordings on the client guarantees they will drift apart.
 
-**Знайдено рівно тим, заради чого робиться перевірка в браузері.** Тести проходили, компонент
-виглядав правильно — але при введенні неіснуючого коду з'являлась помилка, а в історії спроби
-не було, поки не перезавантажиш сторінку. Відхилена спроба **записується** на сервері, отже
-список одразу застарівав.
+**Prompt:** "you also need to block the button while the request is running, to avoid a double
+click."
 
-Виправлено окремою подією `recorded`: форма повідомляє батька, що сервер щось записав, і це
-відбувається на успіху **та на 409**. Валідація `422` події не шле — до домену вона не дійшла,
-писати не було чого. На обидві гілки є тести.
+The button was already disabled via `canSubmit`, but the remark is right in substance: that is not
+enough. The form is also submitted by the **Enter** key in the input — a path that bypasses the
+button. A guard was added inside the handler (`if (status === 'loading') return`) plus disabling of
+the input itself.
 
-**Дрібниця, яку легко проґавити:** зміна фільтра повертає на першу сторінку. Інакше, стоячи
-на сторінці 3 і перемкнувши фільтр, гравець побачив би порожній список — сторінки 3
-у відфільтрованій вибірці може просто не існувати.
-
-Зв'язок із батьком — через `defineExpose({ reload })` і template ref, без фейкової пропси
-на кшталт `refreshKey`.
-
----
-
-## Етап 4. Тікет 2 — скасування нарахування
-
-### Етап 4.1. `PATCH /api/promo/{claimId}/revoke`
-
-**Промпт:** «продовжуємо з того місця де зупинились».
-
-Причини відмови revoke винесені в окремий enum `RevokeRefusal` (`not_applied`,
-`already_revoked`, `insufficient_balance`), а не дописані в `RejectionReason`. Різниця
-принципова: причина відхиленого claim **зберігається в рядку** історії, причина відмови
-revoke не зберігається ніде — вона тільки їде клієнту в 409, бо відмовлений revoke
-не змінює жодного рядка.
-
-**Перевірка балансу живе в `WalletService`, під тим самим локом, що й запис.** Спокуса була
-перевірити в `PromoService` перед викликом — але тоді рішення приймалось би за одним читанням
-балансу, а запис ішов би за іншим. Під локом read і write дивляться на одне значення.
-Guard сформульовано загально — «жоден рух не заводить баланс у мінус», — а не «revoke
-перевіряє свою суму».
-
-Повторний revoke відсікається двічі: перевіркою статусу і **unique `(promo_claim_id, type)`
-на ledger**. Друга лінія потрібна на гонку — два запити можуть обидва побачити `applied`.
-Тест на гонку вставляє конкурентний рядок у хук `creating`, як і в claim.
-
-**Чесно про межу цього тесту:** конкурентний рядок вставляється всередині тієї ж транзакції,
-тож rollback забирає і його — на реальному з'єднанні він би вцілів. Тому тест стверджує лише
-те, що справді доводить: **цей** запит не закомітив ні проводки, ні зміни балансу. Асерцію
-переписав після падіння, замість підганяти під зелений.
-
-Мутаційна перевірка guard'а: `if ($balanceAfter < 0)` → `if (false)`, тест на нестачу балансу
-впав з 409 на 200. Guard справді тримається на тесті.
-
-Чужий claim шукається через `$player->promoClaims()->findOrFail()` — 404, а не 403,
-щоб відповідь не підтверджувала існування чужого id.
-
-**Пастка інструмента, не коду.** Жива перевірка сценарію «бонус уже витрачено» двічі показала
-успішний revoke замість 409. Причиною виявився PowerShell: `>` у `->save()` він розібрав
-як редирект, створив у корені файл із назвою `save()` і **не виконав запис** — баланс лишався
-старим. Застосунок був правий, помилявся тестовий скрипт. Файл прибрано.
-
-Бекенд: 52 тести (було 44), `pint --test` чисто.
-
-### Етап 4.2. Кнопка «Скасувати» і власна модалка — Тікет 2 закрито
-
-**Промпт:** «коміть» (після апруву кроку 14) → далі крок 15.
-
-`ConfirmDialog.vue` — узагальнена модалка (`open`, `title`, `message`, `confirmLabel`,
-`cancelLabel`, `busy`), а не `window.confirm`: нативний діалог блокує браузерну автоматизацію
-й не дає ні стану «виконується», ні фокуса. Закриття — кнопкою, кліком по підкладці й Escape;
-під час запиту закриття **заборонене**, щоб не сховати операцію, результату якої не видно.
-
-**Помилка revoke не витісняє список.** Для неї окремий `revokeError` поруч із `errorMessage`:
-помилка завантаження ховає список законно (даних немає), помилка скасування — ні, рядки
-на місці й на них треба дивитись.
-
-Після **невдалого** revoke історія теж перезавантажується: 409 зазвичай означає, що наша копія
-рядка застаріла (скасували в іншій вкладці), і кнопка, яка не може спрацювати, має зникнути сама.
-
-**Тест, який спершу нічого не вартував.** «Один запит на два кліки» проходив і зі знятим
-guard'ом — бо `await` між кліками давав Vue перемалювати кнопку в `disabled`, і тест міряв
-атрибут, а не обробник. Переписано так, щоб обидва кліки летіли в одному тіку: після цього
-без guard'а тест падає (2 виклики замість 1). Мутація підтвердила.
-
-**Розширення розкладки** не знадобилось: `can_revoke` приходив з API ще з Тікета 1, місце під
-кнопку в рядку було передбачене.
-
-Фронтенд: 36 тестів (було 24), `npm run build` проходить.
-
-**Перевірка в браузері.** Клейм → баланс 50.00 → 150.00, модалка з сумою й кодом, підтвердження
-→ баланс 50.00, статус «Скасовано», кнопка зникла. Гілка помилки: баланс знижено повз застосунок
-(`tinker`), revoke → червоний банер «Недостатньо коштів…», список на місці, статус не змінився.
-
-**Чесно про дві речі.** Кліки самої браузерної автоматизації в цій сесії перестали доходити до
-сторінки (фокус лишався на `body`), тому сценарій прогнано справжніми DOM-подіями через
-`javascript_tool` — застосунок при цьому працює по-справжньому, а от розкладку довелось звіряти
-за скріншотом. І: після відмови `insufficient_balance` картка балансу показує старе значення —
-баланс змінили в обхід застосунку, а сервер у 409 балансу не віддає. Поллінг заради цього
-не заводимо.
+**Verified by measurement, not by inspection:** three quick Enters in a row produced exactly **one**
+`POST /api/promo/claim`, and the balance changed from 150.00 to 200.00. Without the guard the second
+and third requests would have gone to the server and returned 409 — the money would not have been
+doubled thanks to the index, but the user would have seen an error instead of a success.
 
 ---
 
-## Етап 5. Деліверабли
+## Stage 3.6. Frontend tests
 
-### Етап 5.1. Демонстрація: сценарій відео і послідовність скріншотів
+**Prompt:** "let's not forget to write tests for the frontend too, and to check directly in the
+browser."
 
-**Промпт:** «або послідовність скріншотів, що показує запуск проєкту і роботу обох фіч» —
-уточнення до пункту умови, яке змінило план: замість того щоб лишати демо «за користувачем»,
-знімки зроблено одразу.
+A fair remark: the backend had 31 tests, and the three Vue components had none. The frontend was
+only being checked by eye in the browser, so a regression in it would have gone unnoticed.
 
-`docs/DEMO-SCRIPT.md` — хронометраж на 3:30–4:00 з ліміту 2–5 хв, із запасними блоками.
-`docs/SCREENSHOTS.md` — 10 знімків **одного проходу** по чистій БД, кожен із поясненням,
-що саме він доводить.
+Installed **Vitest + @vue/test-utils + jsdom**, a separate `vitest.config.js` (so as not to touch
+`vite.config.js`, which the Laravel plugin owns), and the `npm test` and `npm run test:watch`
+scripts. 15 tests over three components.
 
-Підбір кадрів вівся не «покажемо, що працює», а за пунктами, які оцінюють: повторний claim
-з незмінним балансом, різниця 422 і 409 (і те, що 422 **не** пише рядок в історію),
-відхилені спроби в історії з причинами, скасування з окремою від'ємною проводкою,
-скасований код, який лишається використаним, ізоляція двох гравців.
+**Two failures, both errors in the tests rather than in the code:**
 
-Принагідно виправлено дві неточності в README: рядок `PATCH /revoke` стояв **після** абзацу
-з параметрами історії і випадав з таблиці API, а тести були названі Pest, хоча вони PHPUnit.
+1. "called 5 times instead of 1" — the mock's counter accumulated between the tests in the file.
+   That is, the "called once" assertion was actually measuring the whole suite. Fixed with
+   `clearMocks: true`. Worth remembering: without it such a test **can never fail honestly**.
+2. The button stayed `disabled` after a success — and that is correct behaviour: the input is
+   cleared, and an empty code cannot be submitted. The expectation in the test was wrong, not the
+   code.
 
-### Етап 5.2. Рев'ю коду (Частина 2)
-
-**Промпт:** «додав код ревю, перевір» — рев'ю написав користувач, AI перевіряв, а не писав.
-
-Перевірка підтвердила 13 вихідних зауважень і додала чотири плюс одне уточнення:
-
-- **CSRF у пункті про GET** — формулювання можна було прочитати як «вразливість гарантована».
-  Насправді роут лежить у `routes/api.php`, де сесії й `VerifyCsrfToken` не підключені взагалі:
-  вектор через `<img>` спрацює лише за сесійної автентифікації. Уточнено, бо рецензент
-  за таку неточність зачепиться.
-- **Гроші у float** — наскрізний принцип цього ж проєкту, а в рев'ю пункт був відсутній.
-- **`success: true` як константа** — не «неповна відповідь», а відсутність гілки помилки
-  взагалі: некоректний `amount` віддає 500 від PHP, а не помилку домену.
-- **Немає тестів** на методі, що рухає гроші.
-- **Суперечність HTTP-контракту**: GET зобов'язаний бути безпечним і ідемпотентним,
-  а цей не є ні тим, ні тим.
-
-Наприкінці додано таблицю «як ці ж проблеми вирішені в Частині 1» — вона зшиває обидві частини
-завдання: кожне зауваження має відповідник у коді репозиторію.
-
-**Побічний ефект, вартий згадки.** Vite впав із `EBUSY: resource busy or locked, watch
-'docs/CODE-REVIEW.md'` — вотчер не зміг стати на файл, відкритий у редакторі. Діагностика
-зайняла хвилину, але сам факт корисний: dev-сервер падає від файлу, який до збірки
-не має стосунку.
-
-### Етап 5.3. Фінальний аудит
-
-**Промпт:** «робимо фінальну перевірку, що всі умови виконані, зайвого коду нема, нема коду
-який би було логічно оптимізувати, коментарі в коді англійською, тести всі проходять
-і фінальна перевірка в браузері».
-
-**Знайдено одне справжнє дублювання:** витягання тексту помилки з відповіді axios було
-написане **чотири рази** в трьох компонентах. Винесено в `resources/js/errors.js` →
-`messageFrom(error, fallback)` з чотирма власними тестами.
-
-Побічний ефект виявився покращенням: раніше мережева відмова в історії показувала
-«Не вдалося завантажити історію», хоча запит до сервера навіть не дійшов. Тепер у цьому
-випадку текст точний — «Не вдалося зв'язатися з сервером». Тест, що фіксував стару фразу,
-переписано **свідомо**: змінилась поведінка, а не тест підганявся під код.
-
-Дві дрібні неузгодженості: `__()` навколо української строки в `AuthController` при
-відсутньому каталозі `lang/` (прибрано), і проігнороване значення, яке повертає
-`PromoService::revoke()` (тепер використовується).
-
-**Коментарі:** кирилиця в PHP лишилась тільки там, де вона й має бути — тексти для
-користувача (`RejectionReason`, `RevokeRefusal`, повідомлення валідації) і засіяні імена
-гравців. Жодного коментаря не англійською в `app/`, `tests/`, `resources/js`.
-
-**Інваріанти перевірено на даних, які згенерував браузер**, а не тільки в тестах:
-баланс `20000` = початкові `5000` + сума проводок `15000`; нуль від'ємних балансів;
-нуль дублів `(promo_claim_id, type)`; жодного applied-claim без нарахування і жодного
-revoked без списання.
-
-**Перевірено в браузері наживо:** невірний пароль, claim, повторний claim, 422, прострочений,
-неіснуючий код, пагінація 2 сторінки, три фільтри, Escape і «Ні, залишити» без запиту,
-підтверджений revoke, і окремо — **застаріла кнопка**: нарахування скасовано повз UI,
-клік по кнопці, що лишилась, дав 409 «вже скасоване», список не зник, а після рефетчу
-кнопка зникла сама.
+**Verified by mutation.** To make sure the double-submit test really catches something, the guard
+was temporarily removed — the test failed with "3 calls instead of 1". The code was restored.
 
 ---
 
-## Спостереження про роботу з AI-інструментом
+## Stage 3.7. Reconciling the plan
 
-- Найбільше часу з'їли **не бізнес-задачі, а середовище**: перехоплення TLS антивірусом дало
-  три різні падіння (git, Composer, невдалий обхід через `SSL_CERT_FILE`) з однією причиною.
-- Розбір умови на пронумеровані вимоги **до** написання коду одразу виявив неочевидну вимогу
-  зберігати відхилені спроби.
-- Скріншот налаштувань GitHub змінив рішення, яке інакше було б виконано буквально й помилково —
-  контекст у вигляді картинки спрацював краще за опис словами.
+**Prompt:** "check whether our plan needs adjusting."
+
+Eight discrepancies were found. The most unpleasant one was **the same inaccuracy for the second
+time**: the plan still claimed that the unique indexes "work the same on SQLite and MySQL". That was
+fixed in the README during the schema stage, but it never carried over into the plan, so the
+document remained untrue for a *partial* index.
+
+The others: `CHECK > 0` instead of the actual `unsigned`; "Pest" instead of PHPUnit; no mention of
+Vitest or Tailwind at all; `npm run lint` in the verification list even though no such script exists
+(ESLint is not configured — moved into "out of scope" explicitly, so that it is a decision rather
+than a forgotten item); a stale Context about an empty folder; file names that had diverged from the
+actual ones.
+
+The requirement matrix gained a status column — it is now a living checklist rather than a snapshot
+of the intent.
+
+---
+
+## Stage 3.8. Claim history
+
+**Prompt:** "let's do the next step from the plan."
+
+`GET /api/promo/history`: `PromoHistoryRequest`, pagination, the status filter, 13 tests.
+
+**A decision on top of the brief:** the brief names two filter values, but after Ticket 2 a third
+state appears — `revoked`. All three plus "all" were supported, otherwise revoked claims would
+disappear from the list and that would look like a bug.
+
+**Small things that are easy to miss:**
+- an unknown status returns **422** rather than being silently ignored — otherwise a "found nothing"
+  filter is indistinguishable from an "I did not understand you" filter;
+- `per_page` is capped at 50, so the whole table cannot be pulled in one request;
+- `withQueryString()` — without it the second page quietly loses the filter. There is a dedicated
+  test for that.
+
+**Verified by mutation:** the query was switched from `$request->user()->promoClaims()` to
+`PromoClaim::query()` — the isolation test immediately saw 5 foreign records instead of 2. So this
+endpoint's most important guarantee really is being verified.
+
+---
+
+## Stage 3.9. The history list — Ticket 1 closed
+
+**Prompt:** "go."
+
+`PromoHistory.vue`: a list with date, amount and status, a filter over four values, pagination by 5,
+an empty state, handling of a load error. 9 Vitest tests.
+
+**Found by exactly the thing a browser check exists for.** The tests passed and the component looked
+right — but on entering a non-existent code an error appeared while the attempt was missing from the
+history until you reloaded the page. A rejected attempt **is recorded** on the server, so the list
+went stale immediately.
+
+Fixed with a separate `recorded` event: the form tells the parent that the server wrote something,
+and that happens on a success **and on a 409**. A `422` validation error emits no event — it never
+reached the domain, so there was nothing to write. Both branches have tests.
+
+**A small thing that is easy to miss:** changing the filter returns you to the first page.
+Otherwise, standing on page 3 and switching the filter, the player would see an empty list — page 3
+may simply not exist in the filtered set.
+
+The link to the parent goes through `defineExpose({ reload })` and a template ref, without a fake
+prop like `refreshKey`.
+
+---
+
+## Stage 4. Ticket 2 — revoking a claim
+
+### Stage 4.1. `PATCH /api/promo/{claimId}/revoke`
+
+**Prompt:** "let's continue from where we stopped."
+
+The revoke refusal reasons were moved into a separate `RevokeRefusal` enum (`not_applied`,
+`already_revoked`, `insufficient_balance`) rather than appended to `RejectionReason`. The difference
+is fundamental: the reason for a rejected claim **is stored in the history row**, while the reason
+for a refused revoke is stored nowhere — it only travels to the client in the 409, because a refused
+revoke changes no rows.
+
+**The balance check lives in `WalletService`, under the same lock as the write.** The temptation was
+to check it in `PromoService` before the call — but then the decision would be made from one read of
+the balance while the write went off another. Under the lock, the read and the write look at the
+same value. The guard is phrased generally — "no movement drives the balance negative" — rather than
+"a revoke checks its own amount".
+
+A repeated revoke is cut off twice: by the status check and by the **unique
+`(promo_claim_id, type)` on the ledger**. The second line is needed for the race — two requests can
+both see `applied`. The race test inserts a competing row in the `creating` hook, as in claim.
+
+**Honestly about this test's limits:** the competing row is inserted inside the same transaction, so
+the rollback takes it away too — on a real connection it would survive. That is why the test asserts
+only what it genuinely proves: **this** request committed neither a ledger entry nor a balance
+change. The assertion was rewritten after a failure instead of being bent towards green.
+
+Mutation check of the guard: `if ($balanceAfter < 0)` → `if (false)`, and the insufficient-balance
+test went from 409 to 200. The guard really is held by the test.
+
+Someone else's claim is looked up via `$player->promoClaims()->findOrFail()` — a 404, not a 403, so
+that the response does not confirm the existence of a foreign id.
+
+**A trap in the tooling, not in the code.** A live check of the "the bonus has already been spent"
+scenario twice showed a successful revoke instead of a 409. The cause turned out to be PowerShell:
+it parsed the `>` in `->save()` as a redirect, created a file named `save()` in the root and **did
+not perform the write** — the balance stayed as it was. The application was right; the test script
+was wrong. The file was removed.
+
+Backend: 52 tests (was 44), `pint --test` clean.
+
+### Stage 4.2. The "Revoke" button and our own modal — Ticket 2 closed
+
+**Prompt:** "commit" (after approving step 14) → then step 15.
+
+`ConfirmDialog.vue` — a generic modal (`open`, `title`, `message`, `confirmLabel`, `cancelLabel`,
+`busy`) rather than `window.confirm`: the native dialog blocks browser automation and provides
+neither an "in progress" state nor focus handling. It closes via the button, a backdrop click and
+Escape; while the request is running closing is **forbidden**, so as not to hide an operation whose
+outcome is not visible.
+
+**A revoke error does not displace the list.** It gets its own `revokeError` alongside
+`errorMessage`: a load error legitimately hides the list (there is no data), a revoke error does not
+— the rows are there and they are what you need to look at.
+
+After a **failed** revoke the history is refetched as well: a 409 usually means our copy of the row
+is stale (it was revoked in another tab), and a button that cannot work should disappear on its own.
+
+**A test that was initially worth nothing.** "One request for two clicks" passed even with the guard
+removed — because the `await` between the clicks let Vue repaint the button as `disabled`, and the
+test was measuring the attribute rather than the handler. It was rewritten so that both clicks fly
+in the same tick: after that, without the guard the test fails (2 calls instead of 1). Mutation
+confirmed it.
+
+**Extending the layout** was not needed: `can_revoke` had been coming from the API since Ticket 1,
+and space for the button in the row was already provided for.
+
+Frontend: 36 tests (was 24), `npm run build` passes.
+
+**Browser check.** Claim → balance 50.00 → 150.00, a modal with the amount and the code,
+confirmation → balance 50.00, status "Revoked", the button gone. The error branch: the balance was
+lowered bypassing the application (`tinker`), revoke → a red banner "Insufficient funds…", the list
+in place, the status unchanged.
+
+**Honestly about two things.** The browser automation's own clicks stopped reaching the page in this
+session (focus stayed on `body`), so the scenario was run with real DOM events through
+`javascript_tool` — the application does work for real that way, but the layout had to be checked
+against a screenshot. And: after an `insufficient_balance` refusal the balance card shows the old
+value — the balance was changed bypassing the application, and the server does not return a balance
+in a 409. We are not introducing polling for that.
+
+---
+
+## Stage 5. Deliverables
+
+### Stage 5.1. Demonstration: a screenshot sequence
+
+**Prompt:** "or a sequence of screenshots showing the project's setup and both features working" —
+a clarification of a point in the brief that changed the plan: instead of leaving the demo "up to
+the user", the shots were taken right away.
+
+`docs/SCREENSHOTS.md` — 10 shots of **a single pass** over a clean DB, each with an explanation of
+what exactly it proves.
+
+The frames were chosen not as "let's show that it works" but by the points being graded: a repeated
+claim with an unchanged balance, the difference between 422 and 409 (and the fact that a 422 does
+**not** write a history row), rejected attempts in the history with their reasons, a revoke with a
+separate negative ledger entry, a revoked code that stays used, and the isolation of the two
+players.
+
+Along the way two inaccuracies in the README were fixed: the `PATCH /revoke` row was **after** the
+paragraph about the history parameters and fell out of the API table, and the tests were called Pest
+although they are PHPUnit.
+
+### Stage 5.2. The code review (Part 2)
+
+**Prompt:** "added the code review, check it" — the review was written by the user; the AI was
+checking, not writing.
+
+The check confirmed the 13 original findings and added four more plus one clarification:
+
+- **CSRF in the point about GET** — the wording could be read as "the vulnerability is guaranteed".
+  In reality the route lives in `routes/api.php`, where sessions and `VerifyCsrfToken` are not wired
+  in at all: the `<img>` vector only fires with session authentication. Clarified, because a
+  reviewer will latch onto such an inaccuracy.
+- **Money as floats** — an end-to-end principle of this very project, and the point was missing from
+  the review.
+- **`success: true` as a constant** — not "an incomplete response" but the absence of an error
+  branch altogether: an invalid `amount` returns a 500 from PHP rather than a domain error.
+- **No tests** on a method that moves money.
+- **A contradiction of the HTTP contract**: GET is required to be safe and idempotent, and this one
+  is neither.
+
+At the end a "how these same problems are solved in Part 1" table was added — it stitches both parts
+of the assignment together: every finding has a counterpart in the repository's code.
+
+**A side effect worth mentioning.** Vite crashed with `EBUSY: resource busy or locked, watch
+'docs/CODE-REVIEW.md'` — the watcher could not attach to a file open in the editor. Diagnosing it
+took a minute, but the fact itself is useful: the dev server crashes over a file that has nothing to
+do with the build.
+
+### Stage 5.3. The final audit
+
+**Prompt:** "let's do the final check that all the conditions are met, there is no surplus code, no
+code that would be logical to optimise, comments in the code are in English, all the tests pass, and
+a final check in the browser."
+
+**One genuine duplication was found:** extracting the error text from an axios response was written
+**four times** across three components. Moved into `resources/js/errors.js` →
+`messageFrom(error, fallback)` with four dedicated tests.
+
+The side effect turned out to be an improvement: previously a network failure in the history showed
+"Failed to load the history" even though the request never reached the server. Now the text in that
+case is precise — "Failed to reach the server". The test that pinned the old phrase was rewritten
+**deliberately**: the behaviour changed, rather than the test being bent towards the code.
+
+Two minor inconsistencies: `__()` around a Ukrainian string in `AuthController` with no `lang/`
+catalogue present (removed), and an ignored return value from `PromoService::revoke()` (now used).
+
+**Comments:** Cyrillic in PHP remained only where it belongs — user-facing texts
+(`RejectionReason`, `RevokeRefusal`, validation messages) and the seeded player names. Not a single
+non-English comment in `app/`, `tests/` or `resources/js`.
+
+**The invariants were verified on data generated by the browser**, not only in tests: the balance
+`20000` = the initial `5000` + the ledger sum `15000`; zero negative balances; zero duplicate
+`(promo_claim_id, type)` pairs; no applied claim without a credit and no revoked one without a debit.
+
+**Verified live in the browser:** a wrong password, a claim, a repeated claim, a 422, an expired
+code, a non-existent code, pagination across 2 pages, three filters, Escape and "No, keep it"
+without a request, a confirmed revoke, and separately — **a stale button**: the claim was revoked
+bypassing the UI, a click on the button that remained returned a 409 "already revoked", the list did
+not disappear, and after the refetch the button vanished on its own.
+
+---
+
+## Observations about working with the AI tool
+
+- The most time was eaten **not by the business tasks but by the environment**: TLS interception by
+  the antivirus produced three different failures (git, Composer, and the failed workaround via
+  `SSL_CERT_FILE`) from a single cause.
+- Breaking the brief down into numbered requirements **before** writing code immediately surfaced
+  the non-obvious requirement to store rejected attempts.
+- A screenshot of the GitHub settings changed a decision that would otherwise have been carried out
+  literally and wrongly — context in the form of a picture worked better than a description in words.

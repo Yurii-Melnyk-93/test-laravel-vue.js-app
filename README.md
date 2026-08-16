@@ -1,134 +1,137 @@
-# Промокоди та бонуси — Laravel + Vue
+# Promo Codes and Bonuses — Laravel + Vue
 
-Тестове завдання: REST API на Laravel + фронтенд на Vue 3 для гемблінг/беттинг-платформи.
-Гравець вводить промокод і отримує бонус на баланс; помилково нараховане можна скасувати.
+Test assignment: a Laravel REST API + a Vue 3 frontend for a gambling/betting platform.
+A player enters a promo code and receives a bonus on their balance; a bonus credited by
+mistake can be revoked.
 
 | | |
 |---|---|
 | Backend | Laravel 13, PHP 8.4 |
-| БД | SQLite — жодних зовнішніх сервісів |
-| Auth | Laravel Sanctum, токен у заголовку |
+| DB | SQLite — no external services |
+| Auth | Laravel Sanctum, token in the header |
 | Frontend | Vue 3 (Composition API, `<script setup>`), Vite, axios |
-| Тести | PHPUnit (feature-рівень) + Vitest |
+| Tests | PHPUnit (feature level) + Vitest |
 
-## Запуск
+## Getting started
 
-Потрібні PHP ≥ 8.2, Composer і Node ≥ 20.
+Requires PHP ≥ 8.2, Composer and Node ≥ 20.
 
 ```bash
 composer install
 npm install
 
-cp .env.example .env          # у Windows: copy .env.example .env
+cp .env.example .env          # on Windows: copy .env.example .env
 php artisan key:generate
-php artisan migrate --seed    # створить SQLite-файл, гравців і промокоди
+php artisan migrate --seed    # creates the SQLite file, players and promo codes
 ```
 
-Два процеси в окремих терміналах:
+Two processes in separate terminals:
 
 ```bash
 php artisan serve             # API — http://127.0.0.1:8000
-npm run dev                   # фронтенд
+npm run dev                   # frontend
 ```
 
-Тести:
+Tests:
 
 ```bash
 php artisan test    # API — PHPUnit
-npm test            # компоненти Vue — Vitest
+npm test            # Vue components — Vitest
 ```
 
-## Тестові дані
+## Test data
 
-Два гравці з різними балансами — щоб було видно, що баланс і історія ізольовані:
+Two players with different balances — so it is visible that balance and history are isolated:
 
-| Email | Пароль | Баланс |
+| Email | Password | Balance |
 |---|---|---|
 | `olena@example.com` | `password` | 50.00 |
 | `ihor@example.com` | `password` | 125.50 |
 
-Промокоди — покривають усі гілки поведінки:
+Promo codes — covering every behaviour branch:
 
-| Код | Бонус | Стан |
+| Code | Bonus | State |
 |---|---|---|
-| `WELCOME100` | 100.00 | безстроковий |
-| `BONUS50` | 50.00 | безстроковий |
-| `SUMMER25` | 25.00 | діє ще місяць |
-| `OLDCODE99` | 99.00 | **прострочений** |
+| `WELCOME100` | 100.00 | never expires |
+| `BONUS50` | 50.00 | never expires |
+| `SUMMER25` | 25.00 | valid for another month |
+| `OLDCODE99` | 99.00 | **expired** |
 
 ## API
 
-| Метод | Шлях | Призначення |
+| Method | Path | Purpose |
 |---|---|---|
-| `POST` | `/api/login` | отримати токен |
-| `GET` | `/api/me` | поточний гравець і його баланс |
-| `POST` | `/api/logout` | відкликати поточний токен |
-| `POST` | `/api/promo/claim` | застосувати промокод, нарахувати бонус |
-| `GET` | `/api/promo/history` | історія застосувань: пагінація + фільтр за статусом |
-| `PATCH` | `/api/promo/{claimId}/revoke` | скасувати нарахування |
+| `POST` | `/api/login` | obtain a token |
+| `GET` | `/api/me` | current player and their balance |
+| `POST` | `/api/logout` | revoke the current token |
+| `POST` | `/api/promo/claim` | apply a promo code, credit the bonus |
+| `GET` | `/api/promo/history` | claim history: pagination + status filter |
+| `PATCH` | `/api/promo/{claimId}/revoke` | revoke a credited bonus |
 
-`GET /api/promo/history` приймає `?status=applied\|rejected\|revoked` (без параметра — усі),
-`?per_page=` (1–50, типово 10) і `?page=`. Невідомий статус повертає `422`, а не мовчки
-ігнорується. Фільтр зберігається в посиланнях пагінації.
+`GET /api/promo/history` accepts `?status=applied\|rejected\|revoked` (no parameter — all),
+`?per_page=` (1–50, default 10) and `?page=`. An unknown status returns `422` instead of
+being silently ignored. The filter is preserved in the pagination links.
 
-Усі `/api/promo/*` вимагають заголовок `Authorization: Bearer <token>`.
-**Гравець визначається виключно з токена** — жоден ендпоінт не приймає ідентифікатор гравця
-з тіла запиту чи URL.
+All `/api/promo/*` endpoints require the `Authorization: Bearer <token>` header.
+**The player is determined exclusively from the token** — no endpoint accepts a player
+identifier from the request body or the URL.
 
-### Коди помилок
+### Error codes
 
-| Код | Коли | Приклад |
+| Code | When | Example |
 |---|---|---|
-| `422` | помилка **формату** введених даних | код не відповідає `^[A-Za-z0-9]{6,12}$` |
-| `409` | формат правильний, але порушено **бізнес-правило** | код прострочений, уже використаний, нарахування вже скасоване |
-| `404` | ресурс не існує **або не належить цьому гравцеві** | чужий `claimId` |
+| `422` | input **format** error | the code does not match `^[A-Za-z0-9]{6,12}$` |
+| `409` | format is valid, but a **business rule** is violated | the code is expired, already used, the claim is already revoked |
+| `404` | the resource does not exist **or does not belong to this player** | someone else's `claimId` |
 
-У тілі `409` завжди є машинний `reason` (`not_found`, `expired`, `already_used`,
-`already_revoked`, `not_applied`, `insufficient_balance`) — фронтенд показує текст причини
-за ним, а не парсить повідомлення.
+The body of a `409` always carries a machine-readable `reason` (`not_found`, `expired`,
+`already_used`, `already_revoked`, `not_applied`, `insufficient_balance`) — the frontend
+renders the reason text from it instead of parsing the message.
 
-Чужий claim повертає `404`, а не `403`, щоб не підтверджувати факт існування чужих записів.
+Someone else's claim returns `404` rather than `403`, so as not to confirm that another
+player's records exist.
 
-## Ключові рішення
+## Key decisions
 
-**Гроші — цілі числа в центах.** Жодного float на балансі. API віддає і `cents`, і `formatted`.
+**Money is integer cents.** No floats on the balance anywhere. The API returns both `cents`
+and `formatted`.
 
-**Баланс не змінюється напряму.** Кожна зміна = запис у `wallet_transactions` + оновлення
-`users.balance_cents` в одній транзакції БД. Ledger — джерело правди, сума проводок завжди
-сходиться з балансом.
+**The balance is never mutated directly.** Every change = a row in `wallet_transactions` +
+an update of `users.balance_cents` inside a single DB transaction. The ledger is the source
+of truth; the sum of its entries always reconciles with the balance.
 
-**Захист від зловживань — на рівні схеми БД, а не тільки перевірками в коді.**
-Перевірка `if` не рятує від одночасних запитів, тому:
+**Abuse protection lives in the DB schema, not only in code checks.**
+An `if` does not save you from concurrent requests, hence:
 
-- **частковий** unique-індекс `(user_id, promo_code_id) WHERE status <> 'rejected'` —
-  друга вставка падає на індексі, тож подвійне нарахування неможливе. Відхилені спроби
-  виключені (код не був спожитий, можна пробувати ще), а `revoked` **не** виключений —
-  інакше ланцюжок claim → revoke → claim друкував би гроші;
-- unique `(promo_claim_id, type)` на ledger — на один claim максимум одне нарахування
-  й одне списання, тому повторне скасування неможливе навіть при гонці;
-- `promo_codes.bonus_amount_cents` — `unsigned`;
-- скасування при нестачі балансу відхиляється з `insufficient_balance`, баланс у мінус не йде.
+- a **partial** unique index `(user_id, promo_code_id) WHERE status <> 'rejected'` —
+  the second insert fails on the index, so double crediting is impossible. Rejected attempts
+  are excluded (the code was not consumed, it can be retried), while `revoked` is **not**
+  excluded — otherwise the chain claim → revoke → claim would print money;
+- a unique `(promo_claim_id, type)` on the ledger — at most one credit and one debit per
+  claim, so a repeated revoke is impossible even under a race;
+- `promo_codes.bonus_amount_cents` is `unsigned`;
+- a revoke with insufficient balance is rejected with `insufficient_balance`; the balance
+  never goes negative.
 
-Кожне з цих правил має тест у `tests/Feature/SchemaGuardsTest.php`, який пише **напряму в БД,
-повз код застосунку** — сенс саме в тому, щоб гарантія трималась на схемі й пережила помилку
-в сервісі чи майбутню необережну зміну.
+Each of these rules has a test in `tests/Feature/SchemaGuardsTest.php` that writes **directly
+to the DB, bypassing application code** — the whole point is that the guarantee rests on the
+schema and survives a bug in the service or a careless future change.
 
-> **Обмеження, які варто знати.** Часткові індекси є в SQLite і PostgreSQL, але **не в MySQL** —
-> там той самий інваріант довелося б виражати інакше (наприклад, nullable-колонкою,
-> що заповнюється лише для завершених claim). Під SQLite блокування рівня рядка вироджене,
-> тож `lockForUpdate()` тут декоративний, і реальну гарантію дають саме unique-індекси.
-> `CHECK`-обмеження SQLite приймає лише при створенні таблиці, тому додатність суми тримається
-> на `unsigned` і на валідації, а не на `CHECK`.
+> **Limitations worth knowing.** Partial indexes exist in SQLite and PostgreSQL but **not in
+> MySQL** — there the same invariant would have to be expressed differently (for example, via
+> a nullable column populated only for completed claims). Under SQLite row-level locking is
+> degenerate, so `lockForUpdate()` here is decorative and the real guarantee comes from the
+> unique indexes. SQLite only accepts `CHECK` constraints at table creation time, so the
+> positivity of the amount rests on `unsigned` and on validation rather than on a `CHECK`.
 
-**Відхилені спроби зберігаються.** Історія фільтрується за статусом «відхилено», тож кожен
-невдалий claim створює запис із причиною — і лише потім повертається помилка.
+**Rejected attempts are persisted.** History can be filtered by the "rejected" status, so every
+failed claim creates a record with its reason — and only then is the error returned.
 
-## Документи
+## Documents
 
-| Файл | Що всередині |
+| File | What's inside |
 |---|---|
-| [`docs/PLAN.md`](docs/PLAN.md) | план робіт + матриця всіх вимог завдання |
-| [`docs/PROMPT-LOG.md`](docs/PROMPT-LOG.md) | лог промптів до AI-інструмента: запити, ітерації, виправлення |
-| [`docs/CODE-REVIEW.md`](docs/CODE-REVIEW.md) | Частина 2 завдання — письмове рев'ю наданого фрагмента коду |
-| [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md) | **запуск і обидві фічі в скріншотах** — послідовність із поясненнями |
-| [`docs/DEMO-SCRIPT.md`](docs/DEMO-SCRIPT.md) | сценарій демо-відео: хронометраж і що показати |
+| [`docs/PLAN.md`](docs/PLAN.md) | work plan + a matrix of all the assignment's requirements |
+| [`docs/PROMPT-LOG.md`](docs/PROMPT-LOG.md) | log of prompts to the AI tool: requests, iterations, fixes |
+| [`docs/CODE-REVIEW.md`](docs/CODE-REVIEW.md) | Part 2 of the assignment — a written review of the provided code fragment |
+| [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md) | **setup and both features in screenshots** — an annotated walkthrough |
